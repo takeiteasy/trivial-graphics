@@ -1,11 +1,11 @@
-from __future__ import absolute_import
 import re
+from functools import reduce
+
 from OpenGL import GL
 from OpenGL.raw.GL.VERSION import GL_2_0
 import numpy as np
 from . import enumerations
 from .. import dtypes
-
 
 class ProgramVariable(object):
     def __init__(self, program, index, max_length):
@@ -49,7 +49,7 @@ class ProgramVariable(object):
             match = self._re_matrix.search(self._enum.name)
             dimensions = match.group('dimensions')
             dimensions = dimensions.split('x')
-            dimensions = map(int, dimensions)
+            dimensions = list(map(int, dimensions))
 
             # ensure size is 2 dimensions
             # if not, duplicate the size, ie Mat2 -> [2] -> [2, 2] = 4
@@ -77,7 +77,7 @@ class ProgramVariable(object):
 
     @property
     def name(self):
-        return self._name.split('[')[0]
+        return self._name.decode().split('[')[0]
 
     @property
     def index(self):
@@ -149,7 +149,7 @@ class Uniform(ProgramVariable):
         # glGetUniformuiv 
         # glGetUniformdv
 
-        dimensions = map(lambda x: str(x), self._dimensions)
+        dimensions = list(map(lambda x: str(x), self._dimensions))
         if self._is_matrix:
             if dimensions[0] == dimensions[1]:
                 dimensions = dimensions[0]
@@ -188,7 +188,7 @@ class Uniform(ProgramVariable):
 
     def _set_data(self, location, value):
         value = np.array(value, dtype=self._dtype)
-        count = value.nbytes / self.itemsize
+        count = int(value.nbytes / self.itemsize)
         if self._is_matrix:
             self._set_value_func(location, count, False, value)
         else:    
@@ -215,7 +215,7 @@ class Uniform(ProgramVariable):
 
         # check if the variable is an array or not
         # if not, don't return as an array of values
-        if '[' not in self._name:
+        if b'[' not in self._name:
             data = data[0]
         # convert scalars to single values
         if self._dimensions == (1,):
@@ -233,10 +233,10 @@ class Uniform(ProgramVariable):
         try:
             self.data = value
         except Exception as e:
-            print e
+            print(e)
 
     def __getitem__(self, index):
-        if isinstance(index, (int)):
+        if isinstance(index, int):
             index = slice(index, index + 1, None)
             data = self._get_data_slice(index)
             # return the slice only

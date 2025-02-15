@@ -1,14 +1,10 @@
-from __future__ import absolute_import
 from OpenGL import GL
 from OpenGL.GL.ARB import texture_rg
 import numpy as np
-from .. import dtypes
-from ..proxy import Proxy, Integer32Proxy
-from ..object import ManagedObject, BindableObject, DescriptorMixin
-try:
-    from PIL import Image
-except:
-    Image = None
+from . import dtypes
+from .proxy import Proxy, Integer32Proxy
+from .object import ManagedObject, BindableObject, DescriptorMixin, UnmanagedObject
+from PIL import Image
 
 # TODO: add multisample texture
 # https://www.opengl.org/wiki/Texture_Storage#Immutable_storage
@@ -140,7 +136,6 @@ class ActiveUnitMetaClass(type):
     """
     active_unit = TextureUnitProxy()
 
-
 class Texture(DescriptorMixin, BindableObject, ManagedObject):
     __metaclass__ = ActiveUnitMetaClass
 
@@ -233,6 +228,8 @@ class Texture(DescriptorMixin, BindableObject, ManagedObject):
         except KeyError as e:
             raise ValueError(e.message)
 
+class UnmanagedTexture(Texture, UnmanagedObject):
+    pass
 
 class BasicTexture(Texture):
     _pil_formats = {

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from OpenGL import GL
 
 _variable_enums = dict((int(enum), enum) for enum in [

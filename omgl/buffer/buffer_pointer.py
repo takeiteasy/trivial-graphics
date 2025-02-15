@@ -1,9 +1,8 @@
-from __future__ import absolute_import
 import ctypes
+from functools import reduce
 from OpenGL import GL
 import numpy as np
 from .. import dtypes
-
 
 class BufferPointer(object):
     @classmethod

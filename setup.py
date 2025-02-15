@@ -33,6 +33,7 @@ setup(
         'numpy>=1.13.0',
         'pyopengl',
         'pillow',
+        'pyglsl',
     ],
     tests_require=[],
     extras_require={
@@ -44,10 +45,7 @@ setup(
     packages=[
         'omgl',
         'omgl.buffer',
-        'omgl.mesh',
-        'omgl.pipeline',
         'omgl.shader',
-        'omgl.texture',
     ],
     classifiers=[
         'Natural Language :: English',

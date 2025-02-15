@@ -1,12 +1,12 @@
-from __future__ import absolute_import, print_function
-import re
-import textwrap
+from typing import override, Callable, Any, TypeVar, Generic
 from OpenGL import GL
 from OpenGL.raw.GL.VERSION import GL_2_0
 import numpy as np
 from ..object import ManagedObject
 from ..proxy import Proxy
-
+from .stage import VertexStage, FragmentStage, Stage
+import re
+import textwrap
 
 class ShaderProxy(Proxy):
     def __init__(self, property, dtype=None):
@@ -17,7 +17,7 @@ class ShaderProxy(Proxy):
 
 
 class ShaderError(object):
-    parsers =[
+    parsers = [
         # ATI
         # ERROR: 0:131: '{' : syntax error parse error
         re.compile(r'(?P<type>\w+):\s+(\d+):(?P<line>\d+):\s+(?P<description>.*)', flags=re.I),
@@ -31,23 +31,22 @@ class ShaderError(object):
 
     @classmethod
     def parse(cls, shader, source, log):
-        def parse(error, source):
+        def p(error, src):
             cls_name = shader.__class__.__name__
             for parser in cls.parsers:
                 match = parser.match(error)
                 if match:
-                    type = match.group('type').lower()
+                    t = match.group('type').lower()
                     description = match.group('description')
                     line_number = int(match.group('line'))
-                    line_source = source[line_number - 1]
-                    return cls(cls_name, description, type, line_number, line_source)
+                    line_source = src[line_number - 1]
+                    return cls(cls_name, description, t, line_number, line_source)
             # unable to parse error, please file a bug!
             print('Unable to determine error format, please file a bug!')
             return cls(cls_name, error)
-
         source = source.split('\n')
         lines = log.strip().split('\n')
-        errors = [parse(line, source) for line in lines if line]
+        errors = [p(line, source) for line in lines if line]
         return errors
 
     def __init__(self, cls, description, type='Error', line_number=-1, line_source=''):
@@ -74,6 +73,9 @@ class ShaderError(object):
             """.format(**args)
         )
 
+class ShaderException(Exception):
+    def __init__(self, source: str, log: str):
+        self.message = '\n'.join(map(lambda x: str(x), ShaderError.parse(self, source, log)))
 
 class Shader(ManagedObject):
     _create_func = GL.glCreateShader
@@ -90,7 +92,7 @@ class Shader(ManagedObject):
             return cls(source)
 
     def __init__(self, source):
-        super(Shader, self).__init__()
+        super().__init__()
         self._set_source(source)
         self._compile()
 
@@ -124,13 +126,60 @@ class Shader(ManagedObject):
         GL_2_0.glGetShaderSource(self._handle, length, size, source)
         return source.value
 
+ShaderStage = TypeVar("ShaderStage", bound=None)
 
+class WrappedShader(Shader, Generic[ShaderStage]):
+    @override
+    def __init__(self, source: str | ShaderStage | Callable[..., Any]):
+        self._attributes = {}
+        self._uniforms = {}
+        super().__init__(source)
 
-class VertexShader(Shader):
+    @property
+    def attributes(self):
+        return self._attributes
+
+    @property
+    def uniforms(self):
+        return self._uniforms
+
+    @override
+    def _set_source(self, source):
+        if not source:
+            raise ValueError("Shader source empty")
+        if isinstance(source, Stage):
+            GL.glShaderSource(self._handle, source.compile())
+        elif callable(source):
+            stage = self.__class__.__orig_bases__[0].__args__[0]
+            if stage is VertexStage:
+                GL.glShaderSource(self._handle, VertexStage(source).compile())
+            elif stage is FragmentStage:
+                GL.glShaderSource(self._handle, FragmentStage(source).compile())
+            else:
+                raise ValueError("Invalid Shader source")
+        elif isinstance(source, str):
+            GL.glShaderSource(self._handle, source)
+        else:
+            raise ValueError("Invalid Shader source type")
+
+    @override
+    def _compile(self):
+        Shader._compile(self)
+        source = self.source.decode('utf-8')
+        self._attributes = {}
+        for line in source.split('\n'):
+            p = [x for x in line.lstrip().split(' ') if x]
+            if p:
+                if p[0] == "in" or p[0].startswith("layout"):
+                    self._attributes[p[-1][:-1]] = p[-2]
+                elif p[0] == "uniform":
+                    self._uniforms[p[-1][:-1]] = p[-2]
+
+class VertexShader(WrappedShader[VertexStage]):
     _type = GL.GL_VERTEX_SHADER
     _shader_bit = GL.GL_VERTEX_SHADER_BIT
 
-class FragmentShader(Shader):
+class FragmentShader(WrappedShader[FragmentStage]):
     _type = GL.GL_FRAGMENT_SHADER
     _shader_bit = GL.GL_FRAGMENT_SHADER_BIT
 

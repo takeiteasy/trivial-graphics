@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 class DescriptorMixin(object):
     """Mixin to enable runtime-added descriptors."""
     def __getattribute__(self, name):
@@ -27,8 +24,9 @@ class ManagedObject(GL_Object):
     _create_func = None
     _delete_func = None
 
-    def __init__(self, handle=None, **kwargs):
+    def __init__(self, handle=None, dontdelete=False, **kwargs):
         super(ManagedObject, self).__init__(handle=handle, **kwargs)
+        self.dontdelete = dontdelete
         self._create(handle)
 
     def _create(self, handle):
@@ -50,6 +48,8 @@ class ManagedObject(GL_Object):
         self._destroy()
 
     def _destroy(self):
+        if self.dontdelete:
+            return
         try:
             func = self._delete_func
             if hasattr(self._delete_func, 'wrappedOperation'):
@@ -66,6 +66,13 @@ class ManagedObject(GL_Object):
     @property
     def handle(self):
         return self._handle
+
+class UnmanagedObject(ManagedObject):
+    def __init__(self, handle=None, **kwargs):
+        ManagedObject.__init__(self, handle, dontdelete=True, **kwargs)
+
+    def __del__(self):
+        pass
 
 
 class BindableObject(GL_Object):

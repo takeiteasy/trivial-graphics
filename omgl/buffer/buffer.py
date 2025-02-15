@@ -1,14 +1,18 @@
-from __future__ import absolute_import
 import ctypes
 from copy import copy
+from functools import reduce
 import numpy as np
-from numpy.core.multiarray import int_asbuffer
 from OpenGL import GL
-from ..object import ManagedObject, BindableObject
+from ..object import ManagedObject, BindableObject, UnmanagedObject
 from .buffer_pointer import BufferPointer
-from ..texture.texture import BufferTexture
+from ..texture import BufferTexture
 from .. import dtypes
+import ctypes
 
+def create_numpy_view(ptr, nbytes, dtype):
+    buf = (ctypes.c_ubyte * nbytes).from_address(ptr)  # More direct approach
+    # buf = (ctypes.c_ubyte * nbytes).from_address(ptr)
+    return np.frombuffer(buf, dtype=dtype).copy() # .copy() makes a new copy, so you can safely modify it
 
 class Buffer(BindableObject, ManagedObject):
     _create_func = GL.glGenBuffers
@@ -63,13 +67,13 @@ class Buffer(BindableObject, ManagedObject):
     def _ptr_to_np(self, ptr, access):
         func = ctypes.pythonapi.PyBuffer_FromMemory
         func.restype = ctypes.py_object
-
-        buf = int_asbuffer(ptr, self._nbytes)
-        buf = np.frombuffer(buf, self._dtype)
-
-        buf.shape = self._shape
-        mapped_buffer = MappedBuffer(buf, access=access)
-        return mapped_buffer
+        try:
+            buf = create_numpy_view(ptr, self._nbytes, self._dtype)
+            buf.shape = self._shape
+            mapped_buffer = MappedBuffer(buf, access=access)
+            return mapped_buffer
+        except Exception as e:
+            raise ValueError(str(e))
 
     def map(self, access=GL.GL_READ_WRITE):
         if self._mapped_buffer is not None:
@@ -126,6 +130,8 @@ class Buffer(BindableObject, ManagedObject):
     def names(self):
         return np.dtype(self._dtype).names
 
+class UnmanagedBuffer(Buffer, UnmanagedObject):
+    pass
 
 class MappedBuffer(np.ndarray):
     def __new__(cls, input_array, access=None):

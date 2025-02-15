@@ -1,10 +1,7 @@
-from __future__ import absolute_import
 from OpenGL import GL
-import numpy as np
 from .buffer import IndexBuffer
 from .buffer_pointer import BufferPointer
-from ..object import ManagedObject, BindableObject
-from .. import dtypes
+from ..object import ManagedObject, BindableObject, UnmanagedObject
 
 
 class VertexArray(BindableObject, ManagedObject):
@@ -50,17 +47,19 @@ class VertexArray(BindableObject, ManagedObject):
         return len(self._pointers.keys())
 
     def _update_count(self):
-        self._count = min(map(lambda x: x.size, self._pointers.values()))
+        v = self._pointers.values()
+        self._count = 0 if not v else min(map(lambda x: x.size, v))
 
     def clear(self):
-        for location in self._pointers.keys():
+        while self._pointers:  # Continue until the dictionary is empty
+            location = next(iter(self._pointers))  # Get the first key
             del self[location]
 
     def render(self, primitive=GL.GL_TRIANGLES, start=None, count=None):
         start = start or 0
         count = count or (self._count - start)
         with self:
-            GL.glDrawArrays(primitive, start, count)
+            GL.glDrawArrays(primitive, start, int(count))
 
     def render_indices(self, indices, primitive=GL.GL_TRIANGLES, start=None, count=None):
         if not isinstance(indices, IndexBuffer):
@@ -68,3 +67,6 @@ class VertexArray(BindableObject, ManagedObject):
 
         with self:
             indices.render(primitive, start, count)
+
+class UnmanagedVertexArray(VertexArray, UnmanagedObject):
+    pass

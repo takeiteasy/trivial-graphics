@@ -1,32 +1,16 @@
-*.py[co]
-
-# Packages
-*.egg
-*.egg-info
-dist
-build
-eggs
-parts
-var
-sdist
-develop-eggs
-.installed.cfg
-
-# Installer logs
-pip-log.txt
-
-# Unit test / coverage reports
-.coverage
-.tox
-
-#Translations
-*.mo
-
-#Mr Developer
-.mr.developer.cfg
-
-# OS-X thumbnails
 .DS_Store
-
-# vi swap files
-*.swp
+**/.DS_Store
+*.pyc
+.idea/
+.venv/
+__pycachce__/
+**/__pycachce__/
+*.iml
+build/
+*.txt
+env/
+dist/
+*.egg-info/
+**/*.egg-info/
+.eggs/
+.vscode/

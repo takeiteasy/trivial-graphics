@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function
 from OpenGL import GL
 import numpy as np
 
@@ -28,20 +27,20 @@ class DataType(object):
     def char_code(self):
         return self._char_code
 
-boolean = DataType(True, True, np.bool8, GL.constants.GLbyte, GL.GL_BOOL, bool)
+boolean = DataType(True, True, np.bool, GL.constants.GLbyte, GL.GL_BOOL, bool)
 int8 = DataType(True, True, np.int8, GL.constants.GLbyte, GL.GL_BYTE, int, 'b')
 uint8 = DataType(True, False, np.uint8, GL.constants.GLubyte, GL.GL_UNSIGNED_BYTE, int, 'ub')
 int16 = DataType(True, True, np.int16, GL.constants.GLshort, GL.GL_SHORT, int)
 uint16 = DataType(True, False, np.uint16, GL.constants.GLushort, GL.GL_UNSIGNED_SHORT, int)
 int32 = DataType(True, True, np.int32, GL.constants.GLint, GL.GL_INT, int, 'i')
 uint32 = DataType(True, False, np.uint32, GL.constants.GLuint, GL.GL_UNSIGNED_INT, int, 'ui')
-# TODO: int64
-# TODO: uint64
-#float16 = DataType(False, True, np.float16, GL.constants.GLhalfARB, GL.GL_HALF_NV, float, 'f16')
+int64 = DataType(True, True, np.uint64, GL.constants.GLuint64, GL.GL_UNSIGNED_INT64, int, 'l')
+uint64 = DataType(True, False, np.uint64, GL.constants.GLuint64, GL.GL_UNSIGNED_INT64, int, 'ul')
+float16 = DataType(False, True, np.float16, GL.constants.GLhalfARB, GL.GL_HALF_NV, float, 'f16')
 float32 = DataType(False, True, np.float32, GL.constants.GLfloat, GL.GL_FLOAT, float, 'f')
 float64 = DataType(False, True, np.float64, GL.constants.GLdouble, GL.GL_DOUBLE, float, 'd')
 
-data_types = [boolean, int8, uint8, int16, uint16, int32, uint32, float32, float64]
+data_types = [boolean, int8, uint8, int16, uint16, int32, uint32, int64, uint64, float16, float32, float64]
 
 def for_enum(enum):
     return dict((int(dtype.gl_enum), dtype) for dtype in data_types)[int(enum)]

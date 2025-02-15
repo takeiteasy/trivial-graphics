@@ -1,10 +1,14 @@
-from __future__ import absolute_import
+
 from OpenGL import GL
 import numpy as np
 from .variables import ProgramVariable, Attribute, Uniform
-from ..object import ManagedObject, BindableObject, DescriptorMixin
+from ..object import ManagedObject, UnmanagedObject, BindableObject, DescriptorMixin
 from ..proxy import Integer32Proxy
 from ..proxy import Proxy
+from .stage import Stage, VertexStage, FragmentStage
+from .shader import Shader, VertexShader, FragmentShader, WrappedShader
+
+type ShaderSource = Shader | Stage
 
 """
 TODO: https://www.opengl.org/registry/specs/ARB/separate_shader_objects.txt
@@ -49,61 +53,86 @@ class Program(DescriptorMixin, BindableObject, ManagedObject):
     link_status = ProgramProxy(GL.GL_LINK_STATUS, dtype=np.bool)
     delete_status = ProgramProxy(GL.GL_DELETE_STATUS, dtype=np.bool)
 
-    def __init__(self, shaders, frag_locations=None, **attributes):
+    def __init__(self, shaders: list[ShaderSource], frag_locations: str | dict[str, int] | list[str] = None):
         super(Program, self).__init__()
+        self._uniforms = {}
+        self._attributes = {}
         self._loaded = False
-        self._attributes = None
-        self._uniforms = None
 
-        for shader in shaders:
+        for i, shader in enumerate(shaders):
+            if isinstance(shader, Stage):
+                if isinstance(shader, VertexStage):
+                    shader = VertexShader(shader)
+                elif isinstance(shader, FragmentStage):
+                    shader = FragmentShader(shader)
+                else:
+                    assert False
+            if isinstance(shader, Shader):
+                if isinstance(shader, VertexShader):
+                    self._attributes = shader.attributes
+                    self._uniforms |= shader.uniforms
+                elif isinstance(shader, FragmentShader):
+                    self._uniforms |= shader.uniforms
+                else:
+                    assert False
+            else:
+                raise ValueError("Invalid Shader type")
             self._attach(shader)
+            shaders[i] = shader
 
         if frag_locations:
-            if isinstance(frag_locations, basestring):
-                frag_locations = ((frag_locations, 0),)
+            if isinstance(frag_locations, str):
+                frag_locations = {frag_locations: 0}
+            if isinstance(frag_locations, list):
+                frag_locations = { k: i for i, k in enumerate(frag_locations) }
             for name, number in frag_locations:
                 self._set_frag_location(name, number)
-
-        # set our attributes before link time
-        for name, location in list(attributes.items()):
-            GL.glBindAttribLocation(self._handle, location, name)
-
         self._link()
 
-        # detach shaders so they can be free'ed by opengl
+        if self._attributes:
+            store = VariableStore()
+            for i, _ in enumerate(self._attributes.items()):
+                attr = Attribute(self, i, self.active_attribute_max_length)
+                store[attr.name] = attr
+                self.__dict__[attr.name] = attr
+                GL.glBindAttribLocation(self._handle, i, attr.name)
+            self.__dict__['_attributes'] = store
+
+        if self._uniforms:
+            store = VariableStore()
+            for i, (name, type) in enumerate(self._uniforms.items()):
+                uniform = Uniform(self,
+                                  i,
+                                  self.active_uniform_max_length)
+                store[name] = uniform
+                self.__dict__[uniform.name] = uniform
+            self.__dict__['_uniforms'] = store
+
         for shader in shaders:
             self._detach(shader)
-
-        # mark the program as loaded
-        # from now onwards, any calls to unknown variables or assignments
-        # will the program variables to load if they aren't already
-        # we do this, because loading the variables now will stall the pipeline
-        # until the gpu finishes linking, it's better to link programs in parallel
-        # and then query only when initially needed
         self._loaded = True
 
+    @property
+    def attributes(self):
+        return self._attributes
+
+    @property
+    def uniforms(self):
+        return self._uniforms
+
     def __getattr__(self, name):
-        # only load variables if the program is loaded and the attribute is unknown
+        # noinspection PyBroadException
         try:
             if self._loaded:
-                if not self._uniforms or not self._attributes:
-                    self._load_variables()
                 stores = [self.__dict__['_uniforms'], self.__dict__['_attributes']]
                 for store in stores:
                     if name in store:
-                        return store[name].__get__(store, store.__class__)
-        except:
+                        return store[name.encode("utf-8")].__get__(store, store.__class__)
+        except Exception as e:
             pass
         raise AttributeError
 
     def __setattr__(self, name, value):
-        try:
-            if self._loaded:
-                if name not in self.__dict__:
-                    if not self._uniforms or not self._attributes:
-                        self._load_variables()
-        except:
-            pass
         return super(Program, self).__setattr__(name, value)
 
     def _attach(self, shader):
@@ -114,58 +143,25 @@ class Program(DescriptorMixin, BindableObject, ManagedObject):
 
     def _link(self):
         GL.glLinkProgram(self._handle)
-
         if not self.link_status:
-            log = self.log
-            # TODO: parse the log?
-            raise ValueError(log)
-
+            raise ValueError(self.log)
         # linking sets the program as active
         # ensure we unbind the program
         self.unbind()
-
-    def _load_active_attributes(self):
-        # this is called by __getattr__ and __setattribute__
-        # it cannot make any assignments to self
-        # it MUST use self.__dict__ instead
-        store = VariableStore()
-        self.__dict__['_attributes'] = store
-        max_length = self.active_attribute_max_length
-        for index in range(self.active_attributes):
-            attribute = Attribute(self, index, max_length)
-            store[attribute.name] = attribute
-            self.__dict__[attribute.name] = attribute
-
-    def _load_active_uniforms(self):
-        # this is called by __getattr__ and __setattribute__
-        # it cannot make any assignments to self
-        # it MUST use self.__dict__ instead
-        store = VariableStore()
-        self.__dict__['_uniforms'] = store
-        max_length = self.active_uniform_max_length
-        for index in range(self.active_uniforms):
-            uniform = Uniform(self, index, max_length)
-            store[uniform.name] = uniform
-            self.__dict__[uniform.name] = uniform
-
-    def _load_variables(self):
-        self._load_active_attributes()
-        self._load_active_uniforms()
-
-    def _set_frag_location(self, name, number):
-        GL.glBindFragDataLocation(self._handle, number, name)
-
-    @property
-    def attributes(self):
-        if not self._attributes:
-            self._load_variables()
-        return self._attributes
-
-    @property
-    def uniforms(self):
-        if not self._uniforms:
-            self._load_variables()
-        return self._uniforms
+    
+    def format(self, data: np.ndarray):
+        def convert_dtype(dt):
+            if dt == np.dtype('float32'):
+                return np.float32
+            elif dt == np.dtype('int32'):
+                return np.int32
+            elif dt == np.dtype('uint32'):
+                return np.uint32
+            elif dt == np.dtype('float64'):
+                return np.float64
+            return dt
+        # Sort by OpenGL attribute locations
+        return data.view(dtype=sorted([(k, convert_dtype(v.dtype), v.dimensions[0]) for k, v in self._attributes.items()], key=lambda x: getattr(self, x[0])))
 
     @property
     def valid(self):
@@ -174,3 +170,41 @@ class Program(DescriptorMixin, BindableObject, ManagedObject):
     @property
     def log(self):
         return GL.glGetProgramInfoLog(self._handle)
+
+    def _set_frag_location(self, name, number):
+        GL.glBindFragDataLocation(self._handle, number, name)
+
+class UnmanagedProgram(Program, UnmanagedObject):
+    pass
+
+class StaticProgram:
+    version = "330 core"
+    vertex_source = None
+    vertex_functions = None
+    fragment_source = None
+    fragment_functions = None
+    id = None
+
+    @classmethod
+    def __init__(cls):
+        if not cls.id:
+            p = UnmanagedProgram([VertexStage(cls.vertex_source,
+                                              version=cls.version,
+                                              library=cls.vertex_functions),
+                                  FragmentStage(cls.fragment_source,
+                                                version=cls.version,
+                                                library=cls.fragment_functions)])
+            cls.id = p.handle
+
+    @classmethod
+    def valid(cls):
+        return id is not None and bool(GL.glValidateProgram(cls.id))
+
+    def __int__(self):
+        return self.__class__.id
+
+    @classmethod
+    def delete(cls):
+        if cls.id:
+            GL.glDeleteProgram(cls.id)
+            cls.id = None
