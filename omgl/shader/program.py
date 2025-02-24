@@ -5,7 +5,7 @@ from .variables import ProgramVariable, Attribute, Uniform
 from ..object import ManagedObject, UnmanagedObject, BindableObject, DescriptorMixin
 from ..proxy import Integer32Proxy
 from ..proxy import Proxy
-from .stage import Stage, VertexStage, FragmentStage
+from pyglsl import VertexStage, FragmentStage, Stage
 from .shader import Shader, VertexShader, FragmentShader, WrappedShader
 
 type ShaderSource = Shader | Stage
