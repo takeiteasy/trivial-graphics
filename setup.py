@@ -16,11 +16,11 @@ except ImportError:
 # get our version but don't import it
 # or we'll need our dependencies already installed
 # https://github.com/todddeluca/happybase/commit/63573cdaefe3a2b98ece87e19d9ceb18f00bc0d9
-with open('omgl/version.py', 'r') as f:
+with open('trivial/version.py', 'r') as f:
     exec(f.read())
 
 setup(
-    name='omgl',
+    name='trivial',
     version=__version__,
     description='Pythonic OpenGL Bindings',
     license='BSD',
@@ -43,9 +43,9 @@ setup(
     },
     platforms=['any'],
     packages=[
-        'omgl',
-        'omgl.buffer',
-        'omgl.shader',
+        'trivial',
+        'trivial.buffer',
+        'trivial.shader',
     ],
     classifiers=[
         'Natural Language :: English',

@@ -1,15 +1,15 @@
-import omgl as gl
+import trivial as gl
 import numpy as np
 from OpenGL import GL
 from quickwindow import quick_window
 import slimrr as rr
 
 def test_shader():
-    from omgl.shader.glsl import (AttributeBlock, UniformBlock,
+    from trivial.shader.glsl import (AttributeBlock, UniformBlock,
                                           ShaderInterface, FragmentShaderOutputBlock,
                                           samplerBuffer, texelFetch, vec2,
                                           vec3, vec4, mat4)
-    from omgl.shader.shader import VertexStage, FragmentStage
+    from trivial.shader.shader import VertexStage, FragmentStage
 
     class VsAttrs(AttributeBlock):
         position = vec3()
