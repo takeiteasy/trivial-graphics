@@ -27,10 +27,7 @@ setup(
     author='George Watson',
     url='https://github.com/takeiteasy/trivial-graphics',
     install_requires=[
-        # due to bugs in 1.9, we MUST use <1.9 (1.8) or some version after the issue is fixed
-	# it is unclear which version fixed it, lets just be safe and say 1.13.X (which is latest minor version)
-        # https://github.com/numpy/numpy/issues/5224
-        'numpy>=1.13.0',
+        'numpy',
         'pyopengl',
         'pillow',
         'pyglsl>=0.0.6',

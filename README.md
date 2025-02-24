@@ -5,6 +5,9 @@
 
 A fork of [OMGL](https://github.com/adamlwgriffiths/OMGL).
 
+> [!NOTE]
+> `pip install trivial-graphics==0.0.1`
+
 ## LICENSE
 
 ```
