@@ -15,12 +15,12 @@ class DescriptorMixin(object):
             return super(DescriptorMixin, self).__setattr__(name, value)
 
 
-class GL_Object(object):
+class GLObject(object):
     def __init__(self, **kwargs):
-        super(GL_Object, self).__init__()
+        super(GLObject, self).__init__()
 
 
-class ManagedObject(GL_Object):
+class ManagedObject(GLObject):
     _create_func = None
     _delete_func = None
 
@@ -75,7 +75,7 @@ class UnmanagedObject(ManagedObject):
         pass
 
 
-class BindableObject(GL_Object):
+class BindableObject(GLObject):
     _bind_function = None
     _target = None
 

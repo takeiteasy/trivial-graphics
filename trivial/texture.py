@@ -5,6 +5,7 @@ from . import dtypes
 from .proxy import Proxy, Integer32Proxy
 from .object import ManagedObject, BindableObject, DescriptorMixin, UnmanagedObject
 from PIL import Image
+from typing import Optional, Any
 
 # TODO: add multisample texture
 # https://www.opengl.org/wiki/Texture_Storage#Immutable_storage
@@ -13,8 +14,6 @@ from PIL import Image
 #   + fixed_samples = False
 
 # TODO: FBO texture (see pygol)
-
-
 
 class TextureUnitProxy(Integer32Proxy):
     def __init__(self):
@@ -209,7 +208,7 @@ class Texture(DescriptorMixin, BindableObject, ManagedObject):
             enum = getattr(module, string)
             return enum
         except KeyError as e:
-            raise ValueError(e.message)
+            raise ValueError(e)
 
     @classmethod
     def infer_format(cls, shape, dtype):
@@ -528,10 +527,51 @@ class BufferTexture(Texture):
     def buffer(self):
         return self._buffer
 
+class FrameBufferTexture(DescriptorMixin, BindableObject, ManagedObject):
+    _target = GL.GL_FRAMEBUFFER
+    _set = GL.glFramebufferTexture2D
+    _create_func = GL.glGenFramebuffers
+    _delete_func = GL.glDeleteFramebuffers
+    _bind_func = GL.glBindFramebuffer
+
+    def __init__(self, texture: Optional[Texture] = None, dimensions: tuple[int, int, Optional[int]] = None):
+        if not texture and not dimensions:
+            raise ValueError('Either texture or dimensions must be provided')
+        ManagedObject.__init__(self)
+        d = dimensions or (texture.width, texture.height)
+        match len(d):
+            case 2:
+                d = (d[0], d[1], 3)
+            case 3:
+                pass
+            case _:
+                raise ValueError('Invalid dimensions')
+        self._width, self._height, format = d
+        if not texture:
+            self._texture = Texture2D(shape=d, dtype=dtypes.uint8)
+        with self._texture:
+            with self:
+                self._set(self._target, GL.GL_COLOR_ATTACHMENT0, self._texture._target, self._texture.handle, 0)
+                if not GL.glCheckFramebufferStatus(self._target) == GL.GL_FRAMEBUFFER_COMPLETE:
+                    raise RuntimeError('Framebuffer is incomplete')
+    
+    def bind(self):
+        BindableObject.bind(self)
+        GL.glDrawBuffer(GL.GL_COLOR_ATTACHMENT0)
+
+    def unbind(self):
+        BindableObject.unbind(self)
+        GL.glDrawBuffer(GL.GL_BACK)
+    
+    @property
+    def width(self):
+        return self._width
+
+    @property
+    def height(self):
+        return self._height
+
 """
 class CubeMapTexture(BasicTexture):
     _target = GL.GL_TEXTURE_CUBE_MAP
-
-class FrameBufferTexture(Texture2D):
-    pass
 """

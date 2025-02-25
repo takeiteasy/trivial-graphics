@@ -9,6 +9,7 @@ from .buffer.buffer_pointer import BufferPointer
 from .buffer.buffer import TextureBuffer, VertexBuffer
 
 class DrawCall(DescriptorMixin):
+    
     def __init__(self,
                  program: Program | StaticProgram,
                  indices=None,
@@ -25,6 +26,12 @@ class DrawCall(DescriptorMixin):
         if initial_data.any():
             self.add_data(initial_data)
     
+    def __del__(self):
+        if self._vbo is not None:
+            del self._vbo
+        if self._vertex_array is not None:
+            del self._vertex_array
+
     def add_data(self, data: np.ndarray | list):
         if isinstance(data, list):
             data = np.array(data)

@@ -30,14 +30,8 @@ setup(
         'numpy',
         'pyopengl',
         'pillow',
-        'pyglsl>=0.0.6',
     ],
     tests_require=[],
-    extras_require={
-        'quickwindow': ['quickwindow'],
-        'accelerate': ['pyopengl-accelerate'],
-        'slimrr': ['slimrr'],
-    },
     platforms=['any'],
     packages=[
         'trivial',

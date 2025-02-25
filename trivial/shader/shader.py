@@ -4,7 +4,7 @@ from OpenGL.raw.GL.VERSION import GL_2_0
 import numpy as np
 from ..object import ManagedObject
 from ..proxy import Proxy
-from pyglsl import VertexStage, FragmentStage, Stage
+from .stage import Stage, VertexStage, FragmentStage
 import re
 import textwrap
 
@@ -97,14 +97,16 @@ class Shader(ManagedObject):
         self._compile()
 
     def _set_source(self, source):
-        GL.glShaderSource(self._handle, source)
+        GL.glShaderSource(self._handle, source.encode('utf-8') if isinstance(source, str) else source)
 
     def _compile(self):
         GL.glCompileShader(self._handle)
         if not self.compile_status:
-            log = self.log
-            errors = ShaderError.parse(self, self.source, log)
-            string = '\n'.join(map(lambda x: str(x), errors))
+            log = self.log.decode('utf-8') if not isinstance(self.log, str) else self.log
+            source = self.source.decode('utf-8') if not isinstance(self.source, str) else self.source
+            errors = ShaderError.parse(self, source, log)
+            string = '\n'.join(map(lambda x: str(x), errors)) + '\n' + source
+            print(string)
             raise ValueError(string)
 
     @property
@@ -148,17 +150,18 @@ class WrappedShader(Shader, Generic[ShaderStage]):
         if not source:
             raise ValueError("Shader source empty")
         if isinstance(source, Stage):
-            GL.glShaderSource(self._handle, source.compile())
+            src = source.compile()
+            super()._set_source(src)
         elif callable(source):
             stage = self.__class__.__orig_bases__[0].__args__[0]
             if stage is VertexStage:
-                GL.glShaderSource(self._handle, VertexStage(source).compile())
+                super()._set_source(VertexStage(source).compile())
             elif stage is FragmentStage:
-                GL.glShaderSource(self._handle, FragmentStage(source).compile())
+                super()._set_source(FragmentStage(source).compile())
             else:
                 raise ValueError("Invalid Shader source")
         elif isinstance(source, str):
-            GL.glShaderSource(self._handle, source)
+            super()._set_source(source)
         else:
             raise ValueError("Invalid Shader source type")
 
