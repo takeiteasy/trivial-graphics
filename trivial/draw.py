@@ -58,7 +58,6 @@ from .buffer.buffer_pointer import BufferPointer
 from .buffer.buffer import TextureBuffer, VertexBuffer
 
 class DrawCall(DescriptorMixin):
-    
     def __init__(self,
                  program: Program | StaticProgram,
                  indices=None,

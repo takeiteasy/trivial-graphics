@@ -62,8 +62,6 @@ from typing import Optional, Any
 #   o levels -> samples
 #   + fixed_samples = False
 
-# TODO: FBO texture (see pygol)
-
 class TextureUnitProxy(Integer32Proxy):
     def __init__(self):
         super(TextureUnitProxy, self).__init__(

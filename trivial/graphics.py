@@ -46,3 +46,76 @@
 # The views and conclusions contained in the software and documentation are those
 # of the authors and should not be interpreted as representing official policies, 
 # either expressed or implied, of the FreeBSD Project.
+
+import numpy as np
+
+def mat4(dtype=None):
+    return np.zeros((4, 4), dtype=dtype)
+
+def identity(dtype=None):
+    return np.identity(4, dtype=dtype)
+
+def matmul(a, b):
+    return np.dot(a, b)
+
+def as_mat4(func):
+    def wrapper(*args, **kwargs):
+        mat = func(*args, **kwargs)
+        mat4 = np.identity(4, dtype=kwargs.get('dtype', None))
+        mat4[0:3, 0:3] = mat
+        return mat4
+    return wrapper
+
+@as_mat4
+def translation(vec, dtype=None):
+    mat = identity(dtype)
+    mat[3, 0:3] = vec[:3]
+    return mat
+
+@as_mat4
+def xrotation(theta, dtype=None):
+    cosT = np.cos(theta)
+    sinT = np.sin(theta)
+    return np.array([[ 1.0, 0.0, 0.0 ],
+                     [ 0.0, cosT,-sinT ],
+                     [ 0.0, sinT, cosT ]],
+                     dtype=dtype)
+
+@as_mat4
+def yrotation(theta, dtype=None):
+    cosT = np.cos(theta)
+    sinT = np.sin(theta)
+    return np.array([[ cosT, 0.0,sinT ],
+                     [ 0.0, 1.0, 0.0 ],
+                     [-sinT, 0.0, cosT ]],
+                     dtype=dtype)
+
+@as_mat4
+def zrotation(theta, dtype=None):
+    cosT = np.cos(theta)
+    sinT = np.sin(theta)
+    return np.array([[ cosT,-sinT, 0.0 ],
+                     [ sinT, cosT, 0.0 ],
+                     [ 0.0, 0.0, 1.0 ]],
+                     dtype=dtype)
+
+def rotation(vec, dtype=None):
+    rot_x = xrotation(vec[0], dtype=dtype)
+    rot_y = yrotation(vec[1], dtype=dtype)
+    rot_z = zrotation(vec[2], dtype=dtype)
+    return rot_x @ rot_y @ rot_z
+
+
+def scale(scale, dtype=None):
+    if isinstance(scale, float) or isinstance(scale, int):
+        scale = [scale, scale, scale]
+    m = np.diagflat([scale[0], scale[1], scale[2], 1.0])
+    if dtype:
+        m = m.astype(dtype)
+    return m
+
+def transpose(mat):
+    return np.transpose(mat)
+
+def invert(mat):
+    return np.linalg.inv(mat)
