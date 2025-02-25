@@ -4,18 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trivial-graphics"
-version = "0.0.3"
+version = "0.0.4"
 authors = [
   { name="George Watson", email="gigolo@hotmail.co.uk" },
 ]
 description = "Pythonic OpenGL Bindings"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "numpy",
     "pyopengl",
     "pillow",
-    "pyglsl>=0.0.6",
 ]
 classifiers = [
     "Natural Language :: English",
@@ -24,13 +23,13 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX",
     "Programming Language :: Python",
-    "License :: OSI Approved :: BSD License",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Topic :: Multimedia :: Graphics",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Software Development :: Libraries",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-license = { text = "BSD" }
+license = { text = "GPLv3" }
 
 [project.urls]
 Homepage = "https://github.com/takeiteasy/trivial-graphics"

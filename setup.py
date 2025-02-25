@@ -23,7 +23,7 @@ setup(
     name='trivial',
     version=__version__,
     description='Pythonic OpenGL Bindings',
-    license='BSD',
+    license='GPLv3',
     author='George Watson',
     url='https://github.com/takeiteasy/trivial-graphics',
     install_requires=[
@@ -45,7 +45,7 @@ setup(
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX',
         'Programming Language :: Python',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Topic :: Multimedia :: Graphics',
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
