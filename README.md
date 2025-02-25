@@ -3,10 +3,10 @@
 > [!WARNING]
 > Work in progress
 
-A fork of [OMGL](https://github.com/adamlwgriffiths/OMGL).
+A fork of [OMGL](https://github.com/adamlwgriffiths/OMGL)
 
 > [!NOTE]
-> `pip install trivial-graphics==0.0.2`
+> `pip install trivial-graphics==0.0.3`
 
 ## LICENSE
 

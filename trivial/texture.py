@@ -570,6 +570,10 @@ class FrameBufferTexture(DescriptorMixin, BindableObject, ManagedObject):
     @property
     def height(self):
         return self._height
+    
+    @property
+    def texture(self):
+        return self._texture
 
 """
 class CubeMapTexture(BasicTexture):

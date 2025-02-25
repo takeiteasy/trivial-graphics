@@ -360,11 +360,9 @@ with quick_window(640, 480, "test") as window:
     data = data.astype(np.float32)
     tb = gl.TextureBuffer(data)
     bt = tb.texture
-    bt.active_unit = program.in_buffer
-    bt.bind()
     angle = 0.0
     fbo = gl.FrameBufferTexture(dimensions=window.size)
-    fbo._texture.active_unit = fbprogram.in_buffer
+    ft = fbo.texture
     
     for dt in window.loop():
         for e in window.events():
@@ -386,8 +384,7 @@ with quick_window(640, 480, "test") as window:
             GL.glEnable(GL.GL_CULL_FACE)
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
             GL.glViewport(0, 0, width, height)
-            bt.bind()
-            call.draw(projection=projection, modelview=model_view)
+            call.draw(projection=projection, modelview=model_view, in_buffer=bt)
         
         projection_fbo = rr.Matrix44.orthogonal_projection(-1., 1., -1., 1., -1., 1., np.float32)
         model_view_fbo = rr.Matrix44.identity(np.float32)
@@ -396,5 +393,4 @@ with quick_window(640, 480, "test") as window:
         GL.glDisable(GL.GL_CULL_FACE)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
         GL.glViewport(0, 0, width*2, height*2)
-        fbo._texture.bind()
-        fbcall.draw(projection=projection_fbo, modelview=model_view_fbo)
+        fbcall.draw(projection=projection_fbo, modelview=model_view_fbo, in_buffer=ft)
