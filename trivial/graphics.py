@@ -1,7 +1,3 @@
-# Forked by George Watson (https://github.com/takeiteasy)
-# Copyright (c) 2025.
-# All rights reserved.
-#
 # trivial-graphics
 #
 # Copyright (C) 2025  George Watson
@@ -18,62 +14,39 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Original license:
-#
-# Created by Adam Griffiths (https://github.com/adamlwgriffiths)
-#
-# Copyright (c) 2015.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met: 
-#
-# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer. 
-# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution. 
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# The views and conclusions contained in the software and documentation are those
-# of the authors and should not be interpreted as representing official policies, 
-# either expressed or implied, of the FreeBSD Project.
 
 import numpy as np
+from enum import Enum
+from contextlib import contextmanager
 
-def mat4(dtype=None):
+def _mat4(dtype=None):
     return np.zeros((4, 4), dtype=dtype)
 
-def identity(dtype=None):
+def _identity(dtype=None):
     return np.identity(4, dtype=dtype)
 
-def matmul(a, b):
+def _matmul(a, b):
     return np.dot(a, b)
 
 def as_mat4(func):
     def wrapper(*args, **kwargs):
         mat = func(*args, **kwargs)
-        mat4 = np.identity(4, dtype=kwargs.get('dtype', None))
-        mat4[0:3, 0:3] = mat
-        return mat4
+        if mat.shape == (3, 3,):
+            mat4 = np.identity(4, dtype=kwargs.get('dtype', None))
+            mat4[0:3, 0:3] = mat
+            return mat4
+        else:
+            return mat
     return wrapper
 
 @as_mat4
-def translation(vec, dtype=None):
-    mat = identity(dtype)
+def _translation(vec, dtype=None):
+    mat = _identity(dtype)
     mat[3, 0:3] = vec[:3]
     return mat
 
 @as_mat4
-def xrotation(theta, dtype=None):
+def _xrotation(theta, dtype=None):
     cosT = np.cos(theta)
     sinT = np.sin(theta)
     return np.array([[ 1.0, 0.0, 0.0 ],
@@ -82,7 +55,7 @@ def xrotation(theta, dtype=None):
                      dtype=dtype)
 
 @as_mat4
-def yrotation(theta, dtype=None):
+def _yrotation(theta, dtype=None):
     cosT = np.cos(theta)
     sinT = np.sin(theta)
     return np.array([[ cosT, 0.0,sinT ],
@@ -91,7 +64,7 @@ def yrotation(theta, dtype=None):
                      dtype=dtype)
 
 @as_mat4
-def zrotation(theta, dtype=None):
+def _zrotation(theta, dtype=None):
     cosT = np.cos(theta)
     sinT = np.sin(theta)
     return np.array([[ cosT,-sinT, 0.0 ],
@@ -99,14 +72,13 @@ def zrotation(theta, dtype=None):
                      [ 0.0, 0.0, 1.0 ]],
                      dtype=dtype)
 
-def rotation(vec, dtype=None):
-    rot_x = xrotation(vec[0], dtype=dtype)
-    rot_y = yrotation(vec[1], dtype=dtype)
-    rot_z = zrotation(vec[2], dtype=dtype)
+def _rotation(vec, dtype=None):
+    rot_x = _xrotation(vec[0], dtype=dtype)
+    rot_y = _yrotation(vec[1], dtype=dtype)
+    rot_z = _zrotation(vec[2], dtype=dtype)
     return rot_x @ rot_y @ rot_z
 
-
-def scale(scale, dtype=None):
+def _scale(scale, dtype=None):
     if isinstance(scale, float) or isinstance(scale, int):
         scale = [scale, scale, scale]
     m = np.diagflat([scale[0], scale[1], scale[2], 1.0])
@@ -114,8 +86,147 @@ def scale(scale, dtype=None):
         m = m.astype(dtype)
     return m
 
-def transpose(mat):
+def _transpose(mat):
     return np.transpose(mat)
 
-def invert(mat):
+def _invert(mat):
     return np.linalg.inv(mat)
+
+class MatrixStack:
+    def __init__(self, initial: np.ndarray = _mat4()):
+        self.stack: list[np.ndarray] = [initial]
+    
+    def push(self, mat: np.ndarray):
+        self.stack.append(mat)
+    
+    def pop(self):
+        if not self.stack:
+            raise IndexError("Stack is empty")
+        return self.stack.pop()
+    
+    @property
+    def head(self):
+        if not self.stack:
+            raise IndexError("Stack is empty")
+        return self.stack[-1]
+    
+    def load_identity(self):
+        if not self.stack:
+            self.stack.append(_identity())
+        else:
+            self.stack[-1][:] = _identity()
+    
+    def mul(self, mat):
+        if not self.stack:
+            raise IndexError("Stack is empty")
+        self.stack[-1] = _matmul(self.stack[-1], mat)
+    
+    def translate(self, vec):
+        self.mul(_translation(vec))
+    
+    def scale(self, scale):
+        self.mul(_scale(scale))
+    
+    def rotate(self, vec):
+        self.mul(_rotation(vec))
+    
+    def rotate_x(self, theta):
+        self.mul(_xrotation(theta))
+    
+    def rotate_y(self, theta):
+        self.mul(_yrotation(theta))
+
+    def rotate_z(self, theta):
+        self.mul(_zrotation(theta))
+
+class MatrixMode(Enum):
+    MODELVIEW = 0
+    PROJECTION = 1
+    TEXTURE = 2
+
+class GLState:
+    def __init__(self):
+        self.stacks = {k: MatrixStack() for k in MatrixMode}
+        self._current_mode = MatrixMode.MODELVIEW
+
+    @property
+    def current_mode(self):
+        return self._current_mode
+
+    @current_mode.setter
+    def current_mode(self, mode: MatrixMode):
+        if mode not in MatrixMode:
+            raise ValueError("Invalid matrix mode")
+        self._current_mode = mode
+
+    def push(self):
+        self.stacks[self.current_mode].push(self.stacks[self.current_mode].head)
+    
+    def pop(self):
+        return self.stacks[self.current_mode].pop()
+    
+    def load_identity(self):
+        self.stacks[self.current_mode].load_identity()
+    
+    def translate(self, vec):
+        self.stacks[self.current_mode].translate(vec)
+    
+    def rotate(self, vec):
+        self.stacks[self.current_mode].rotate(vec)
+    
+    def xrotate(self, theta):
+        self.stacks[self.current_mode].rotate_x(theta)
+
+    def yrotate(self, theta):
+        self.stacks[self.current_mode].rotate_y(theta)
+    
+    def zrotate(self, theta):
+        self.stacks[self.current_mode].rotate_z(theta)
+    
+    def scale(self, scale):
+        self.stacks[self.current_mode].mul(_scale(scale))
+
+__state__ = GLState()
+
+@contextmanager
+def matrix_mode(mode: MatrixMode):
+    original = __state__.current_mode
+    __state__.current_mode = mode
+    yield
+    __state__.current_mode = original 
+
+def push_matrix():
+    __state__.push()
+
+def pop_matrix():
+    return __state__.pop()
+
+def load_identity():
+    __state__.load_identity()
+
+def translate(x, y, z):
+    __state__.translate([x, y, z])
+
+def rotate(x, y, z):
+    __state__.rotate([x, y, z])
+
+def xrotate(theta):
+    __state__.xrotate(theta)
+
+def yrotate(theta):
+    __state__.yrotate(theta)
+
+def zrotate(theta):
+    __state__.zrotate(theta)
+
+def scale(scale):
+    __state__.scale(scale)
+
+def get_modelview_matrix():
+    return __state__.stacks[MatrixMode.MODELVIEW].head
+
+def get_projection_matrix():
+    return __state__.stacks[MatrixMode.PROJECTION].head
+
+def get_texture_matrix():
+    return __state__.stacks[MatrixMode.TEXTURE].head
