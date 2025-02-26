@@ -1,4 +1,4 @@
-# pyglsl -- https://github.com/takeiteasy/pyglsl 
+# pyglsl -- https://github.com/takeiteasy/pyglsl
 #
 # Copyright (C) 2016 Nicholas Bishop
 # Copyright (C) 2025 George Watson
@@ -7,12 +7,12 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -49,10 +49,10 @@ class GlslType(SupportsAbs, SupportsInt, SupportsFloat):
     def __truediv__(self, other) -> 'GlslType':
         return GlslType(self, other)
 
-    def __int__(self):
+    def __int__(self):  # type: ignore
         pass
 
-    def __float__(self):
+    def __float__(self):  # type: ignore
         pass
 
 GlslArrayElem = TypeVar('GlslArrayElem')
@@ -74,8 +74,8 @@ class ArraySpec(object):
     directly, it's just a convenient form for internal use.
     """
 
-    element_type = attr.ib()
-    length = attr.ib()
+    element_type = attr.ib()  # type: ignore
+    length = attr.ib()  # type: ignore
 
     @classmethod
     def from_ast_node(cls, node):
@@ -98,4 +98,4 @@ class ArraySpec(object):
         if not isinstance(node.slice, ast.Name):
             return None
         gtype = node.slice.id
-        return cls(gtype, num)
+        return cls(gtype, num)  # type: ignore

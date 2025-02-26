@@ -27,10 +27,10 @@
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met: 
+# modification, are permitted provided that the following conditions are met:
 #
-# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer. 
-# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution. 
+# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -44,7 +44,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # The views and conclusions contained in the software and documentation are those
-# of the authors and should not be interpreted as representing official policies, 
+# of the authors and should not be interpreted as representing official policies,
 # either expressed or implied, of the FreeBSD Project.
 
 from typing import override, Callable, Any, TypeVar, Generic
@@ -155,7 +155,6 @@ class Shader(ManagedObject):
             source = self.source.decode('utf-8') if not isinstance(self.source, str) else self.source
             errors = ShaderError.parse(self, source, log)
             string = '\n'.join(map(lambda x: str(x), errors)) + '\n' + source
-            print(string)
             raise ValueError(string)
 
     @property
@@ -173,7 +172,7 @@ class Shader(ManagedObject):
         # use the non-wrapped version
         length = self.source_length
         size = (GL.constants.GLint)()
-        source = (GL.constants.GLchar * length)()
+        source = (GL.constants.GLchar * length)()  # type: ignore
         GL_2_0.glGetShaderSource(self._handle, length, size, source)
         return source.value
 
@@ -202,7 +201,7 @@ class WrappedShader(Shader, Generic[ShaderStage]):
             src = source.compile()
             super()._set_source(src)
         elif callable(source):
-            stage = self.__class__.__orig_bases__[0].__args__[0]
+            stage = self.__class__.__orig_bases__[0].__args__[0]  # type: ignore
             if stage is VertexStage:
                 super()._set_source(VertexStage(source).compile())
             elif stage is FragmentStage:
@@ -227,11 +226,11 @@ class WrappedShader(Shader, Generic[ShaderStage]):
                 elif p[0] == "uniform":
                     self._uniforms[p[-1][:-1]] = p[-2]
 
-class VertexShader(WrappedShader[VertexStage]):
+class VertexShader(WrappedShader[VertexStage]): # type: ignore
     _type = GL.GL_VERTEX_SHADER
     _shader_bit = GL.GL_VERTEX_SHADER_BIT
 
-class FragmentShader(WrappedShader[FragmentStage]):
+class FragmentShader(WrappedShader[FragmentStage]):  # type: ignore
     _type = GL.GL_FRAGMENT_SHADER
     _shader_bit = GL.GL_FRAGMENT_SHADER_BIT
 

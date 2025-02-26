@@ -1,4 +1,4 @@
-# pyglsl -- https://github.com/takeiteasy/pyglsl 
+# pyglsl -- https://github.com/takeiteasy/pyglsl
 #
 # Copyright (C) 2016 Nicholas Bishop
 # Copyright (C) 2025 George Watson
@@ -7,18 +7,18 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import ast
 from typing import Optional, Union, Sequence, List, Callable, Any, get_type_hints
-from pyglsl.interface import snake_case, ShaderInterface
+from pyglsl.interface import snake_case
 from pyglsl.parse import parse, GlslVisitor
 
 class NoDeclAssign(ast.Assign):
@@ -42,15 +42,15 @@ def kwargs_as_assignments(call_node, parent):
     for keyword in call_node.keywords:
         dst_name = keyword.arg
 
-        if dst_name.startswith('gl_'):
+        if dst_name.startswith('gl_'):  # type: ignore
             # Write to builtins directly
-            target = [ast.Name(id=keyword.arg, ctx=ast.Load())]
+            target = [ast.Name(id=keyword.arg, ctx=ast.Load())]  # type: ignore
         else:
             # Non-builtins are part of an interface block
-            target = [ast.Attribute(value=parent, attr=keyword.arg,
+            target = [ast.Attribute(value=parent, attr=keyword.arg,  # type: ignore
                                     ctx=ast.Store())]
 
-        yield NoDeclAssign(targets=target, value=keyword.value)
+        yield NoDeclAssign(targets=target, value=keyword.value)  # type: ignore
 
 class _RewriteReturn(ast.NodeTransformer):
     def __init__(self, interface):
@@ -104,7 +104,7 @@ class Stage:
                  func: Callable[..., Any],
                  version: Optional[Union[str, int]] = "330 core",
                  library: Optional[List[Callable[..., Any]]] = []):
-        self.library = library
+        self.library = library or []
         self.version = version
         self.root = parse(func)
         self.params = get_type_hints(func)
@@ -141,7 +141,7 @@ class Stage:
 
         if is_fragment:
             rem_names = [name for name, ptype in self.params.items() if ptype.__bases__[0].__name__ != 'ShaderInterface']
-            rem_names.append(snake_case(self.return_type.__name__))
+            rem_names.append(snake_case(self.return_type.__name__))  # type: ignore
         else:
             rem_names = [name for name, _ in self.params.items()]
         node = _Remover(rem_names).visit(node)

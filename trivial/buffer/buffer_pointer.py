@@ -11,12 +11,13 @@ class BufferPointer(object):
         dtype = np.dtype(buffer.dtype)
         if name:
             # complex dtype
+            assert dtype is not None and dtype.fields is not None
             offset = dtype.fields[name][1]
             count = reduce(lambda x,y: x*y, dtype[name].shape, 1)
-            pointer = BufferPointer(buffer=buffer, count=count, stride=dtype.itemsize, offset=offset, dtype=dtype[name].base)
+            pointer = BufferPointer(buffer=buffer, count=count, stride=dtype.itemsize, offset=offset, dtype=dtype[name].base) # type: ignore
             return pointer
         else:
-            pointer = BufferPointer(buffer=buffer, count=buffer.shape[-1], stride=dtype.itemsize, offset=0, dtype=dtype.base)
+            pointer = BufferPointer(buffer=buffer, count=buffer.shape[-1], stride=dtype.itemsize, offset=0, dtype=dtype.base) # type: ignore
             return pointer
 
     def __init__(self, buffer, count=3, stride=0, offset=0, dtype=np.float32, normalize=False):
@@ -49,7 +50,7 @@ class BufferPointer(object):
     @property
     def size(self):
         offset = 0
-        if self.offset:
+        if self.offset and self.offset.value:
             offset = self.offset.value
         offset = offset - (offset % self.stride)
         return (self._buffer.nbytes - offset) / self.stride

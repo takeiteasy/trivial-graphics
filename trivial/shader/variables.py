@@ -27,10 +27,10 @@
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met: 
+# modification, are permitted provided that the following conditions are met:
 #
-# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer. 
-# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution. 
+# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -44,7 +44,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # The views and conclusions contained in the software and documentation are those
-# of the authors and should not be interpreted as representing official policies, 
+# of the authors and should not be interpreted as representing official policies,
 # either expressed or implied, of the FreeBSD Project.
 
 import re
@@ -65,7 +65,7 @@ class ProgramVariable(object):
         size = (GL.constants.GLint)()
         enum = (GL.constants.GLenum)()
         name = (GL.constants.GLchar * max_length)()
-        self._get_defails_func(self._program.handle, index, max_length, length, size, enum, name)
+        self._get_defails_func(self._program.handle, index, max_length, length, size, enum, name)  # type: ignore
 
         self._size = size.value
         self._enum = enumerations.variables_by_value(enum.value)
@@ -74,11 +74,11 @@ class ProgramVariable(object):
         self._parse_type()
 
     def _format_for_enum(self, enum):
-        if '_UNSIGNED_INT' in self._enum.name:
+        if '_UNSIGNED_INT' in self._enum.name:  # type: ignore
             return 'ui'
-        elif '_FLOAT' in self._enum.name:
+        elif '_FLOAT' in self._enum.name:  # type: ignore
             return 'f'
-        elif '_DOUBLE' in self._enum.name:
+        elif '_DOUBLE' in self._enum.name:  # type: ignore
             return 'd'
         else:
             return 'i'
@@ -92,11 +92,11 @@ class ProgramVariable(object):
         self._format = self._format_for_enum(self._enum)
         self._dtype = np.dtype(dtypes.for_code(self._format).dtype)
 
-        if '_MAT' in self._enum.name:
+        if '_MAT' in self._enum.name:  # type: ignore
             self._is_matrix = True
 
-            match = self._re_matrix.search(self._enum.name)
-            dimensions = match.group('dimensions')
+            match = self._re_matrix.search(self._enum.name)  # type: ignore
+            dimensions = match.group('dimensions')  # type: ignore
             dimensions = dimensions.split('x')
             dimensions = list(map(int, dimensions))
 
@@ -109,9 +109,9 @@ class ProgramVariable(object):
         else:
             self._is_matrix = False
 
-            if '_VEC' in self._enum.name:
-                match = self._re_vector.search(self._enum.name)
-                dimensions = int(match.group('dimensions'))
+            if '_VEC' in self._enum.name:  # type: ignore
+                match = self._re_vector.search(self._enum.name)  # type: ignore
+                dimensions = int(match.group('dimensions'))  # type: ignore
             else:
                 dimensions = 1
             self._dimensions = (dimensions,)
@@ -134,7 +134,7 @@ class ProgramVariable(object):
 
     @property
     def location(self):
-        return int(self._get_location_func(self._program.handle, self._name))
+        return int(self._get_location_func(self._program.handle, self._name))  # type: ignore
 
     @property
     def dtype(self):
@@ -193,9 +193,9 @@ class Uniform(ProgramVariable):
         #   glUniformMatrix3x2fv
 
         # https://www.opengl.org/sdk/docs/man/html/glGetUniform.xhtml
-        # glGetUniformfv 
-        # glGetUniformiv 
-        # glGetUniformuiv 
+        # glGetUniformfv
+        # glGetUniformiv
+        # glGetUniformuiv
         # glGetUniformdv
 
         dimensions = list(map(lambda x: str(x), self._dimensions))
@@ -239,14 +239,14 @@ class Uniform(ProgramVariable):
         value = np.array(value, dtype=self._dtype)
         count = int(value.nbytes / self.itemsize)
         if self._is_matrix:
-            self._set_value_func(location, count, False, value)
-        else:    
-            self._set_value_func(location, count, value)
+            self._set_value_func(location, count, False, value)  # type: ignore
+        else:
+            self._set_value_func(location, count, value)  # type: ignore
 
     def _get_data(self, location):
         count = reduce(lambda x,y: x*y, self._dimensions)
         data = np.empty((count,), dtype=self._dtype)
-        self._get_value_func(self._program.handle, location, data)
+        self._get_value_func(self._program.handle, location, data) # type: ignore
         data.shape = self._dimensions
         return data
 

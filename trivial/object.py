@@ -115,6 +115,10 @@ class ManagedObject(GLObject):
     @property
     def handle(self):
         return self._handle
+    
+    @property
+    def id(self):
+        return self._handle
 
 class UnmanagedObject(ManagedObject):
     def __init__(self, handle=None, **kwargs):

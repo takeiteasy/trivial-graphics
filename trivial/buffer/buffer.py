@@ -7,7 +7,6 @@ from ..object import ManagedObject, BindableObject, UnmanagedObject
 from .buffer_pointer import BufferPointer
 from ..texture import BufferTexture
 from .. import dtypes
-import ctypes
 
 def create_numpy_view(ptr, nbytes, dtype):
     buf = (ctypes.c_ubyte * nbytes).from_address(ptr)  # More direct approach
@@ -124,7 +123,7 @@ class Buffer(BindableObject, ManagedObject):
 
     @property
     def itemsize(self):
-        return np.dtype(self._format).itemsize
+        return np.dtype(self._format).itemsize  # type: ignore
 
     @property
     def names(self):
@@ -153,7 +152,7 @@ class MappedBuffer(np.ndarray):
     def __setslice__(self, start, stop, value):
         if self.access not in (GL.GL_WRITE_ONLY, GL.GL_READ_WRITE):
             raise ValueError("Mapped buffer is read only")
-        super(MappedBuffer, self).__setslice__(start, stop, value)
+        super(MappedBuffer, self).__setslice__(start, stop, value)  # type: ignore
 
     def unmap(self):
         # TODO: somehow mark this buffer as unusable
@@ -214,7 +213,7 @@ class ArrayBuffer(ArrayBufferMixin, Buffer):
             self._pointers = [BufferPointer.for_np_buffer(self)]
 
     @property
-    def pointers(self):
+    def pointers(self) -> dict[str, BufferPointer] | list:
         return copy(self._pointers)
 
 class ElementBuffer(ElementBufferMixin, Buffer):

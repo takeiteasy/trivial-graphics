@@ -56,7 +56,7 @@ def shader2():
                      out_texcoords=attr.texcoord)
 
     class FsUniforms(UniformBlock):
-        in_buffer = sampler2D() 
+        in_buffer = sampler2D()
 
     class FsOut(FragmentShaderOutputBlock):
         out_color = vec4()
@@ -65,7 +65,7 @@ def shader2():
         return FsOut(out_color=texture(uniforms.in_buffer, vs_out.out_texcoords))
 
     return VertexStage(vertex), FragmentStage(fragment)
-    
+
 def create_cube(scale=(1.0,1.0,1.0), st=False, rgba=False, dtype='float32', type='triangles'):
     shape = [24, 3]
     rgba_offset = 3
@@ -185,7 +185,7 @@ def create_cube(scale=(1.0,1.0,1.0), st=False, rgba=False, dtype='float32', type
             pass
         elif isinstance(rgba, (int, float)):
             # int / float expands to RGBA with all values == value
-            rgba_values *= rgba 
+            rgba_values *= rgba
         elif isinstance(rgba, (list, tuple, np.ndarray)):
             rgba = np.array(rgba, dtype=dtype)
 
@@ -301,7 +301,7 @@ def create_quad(scale=(1.0,1.0), st=False, rgba=False, dtype='float32', type='tr
             pass
         elif isinstance(rgba, (int, float)):
             # int / float expands to RGBA with all values == value
-            rgba_values *= rgba 
+            rgba_values *= rgba
         elif isinstance(rgba, (list, tuple, np.ndarray)):
             rgba = np.array(rgba, dtype=dtype)
 
@@ -348,13 +348,13 @@ def create_quad(scale=(1.0,1.0), st=False, rgba=False, dtype='float32', type='tr
     return data, indices
 
 with quick_window(640, 480, "test") as window:
-    program = gl.Program(list(test_shader()))
-    data, indices = create_cube((5.,5.,5.,), st=True, dtype=np.float32)
+    program = gl.Program(shaders=list(test_shader()))
+    data, indices = create_cube((5.,5.,5.,), st=True)
     flat_data = data[indices]
     call = gl.DrawCall(program, initial_data=flat_data)
-    data, indices = create_quad((2.,2.,), st=True, dtype=np.float32)
+    data, indices = create_quad((2.,2.,), st=True)
     flat_data = data[indices]
-    fbprogram = gl.Program(list(shader2()))
+    fbprogram = gl.Program(shaders=list(shader2()))
     fbcall = gl.DrawCall(fbprogram, initial_data=flat_data)
     data = np.random.random_sample((512,512,4))
     data = data.astype(np.float32)
@@ -363,11 +363,11 @@ with quick_window(640, 480, "test") as window:
     angle = 0.0
     fbo = gl.FrameBufferTexture(dimensions=window.size)
     ft = fbo.texture
-    
+
     for dt in window.loop():
         for e in window.events():
             print(e)
-    
+
         width, height = window.size
         aspect = float(width) / float(height)
         projection = rr.Matrix44.perspective_projection(90., aspect, 1., 100., np.float32)
@@ -377,15 +377,15 @@ with quick_window(640, 480, "test") as window:
             angle -= 2 * np.pi
         rotation = rr.Matrix44.from_y_rotation(angle, np.float32)
         model_view = model_view * rotation
-    
+
         with fbo:
             GL.glClearColor(1.0, 0.2, 0.2, 1.0)
             GL.glEnable(GL.GL_DEPTH_TEST)
             GL.glEnable(GL.GL_CULL_FACE)
-            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT) # type: ignore
             GL.glViewport(0, 0, width, height)
             call.draw(projection=projection, modelview=model_view, in_buffer=bt)
-        
+
         projection_fbo = rr.Matrix44.orthogonal_projection(-1., 1., -1., 1., -1., 1., np.float32)
         model_view_fbo = rr.Matrix44.identity(np.float32)
         GL.glClearColor(0.2, 0.2, 0.2, 1.0)
