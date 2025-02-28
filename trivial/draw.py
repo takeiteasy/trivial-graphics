@@ -1,161 +1,56 @@
-# Forked by George Watson (https://github.com/takeiteasy)
-# Copyright (c) 2025.
-# All rights reserved.
-#
-# trivial-graphics
-#
-# Copyright (C) 2025  George Watson
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# Original license:
-#
-# Created by Adam Griffiths (https://github.com/adamlwgriffiths)
-#
-# Copyright (c) 2015.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-# The views and conclusions contained in the software and documentation are those
-# of the authors and should not be interpreted as representing official policies,
-# either expressed or implied, of the FreeBSD Project.
 
 from OpenGL import GL
-import numpy as np
 from .object import DescriptorMixin
-from .shader import Program, StaticProgram
-from .texture import Texture
 from .buffer.vertex_array import VertexArray
 from .buffer.buffer_pointer import BufferPointer
-from .buffer.buffer import TextureBuffer, VertexBuffer
-from typing import Optional
 
 class DrawCall(DescriptorMixin):
-    def __init__(self,
-                 program: Program | StaticProgram,
-                 indices=None,
-                 primitive=GL.GL_TRIANGLES,
-                 initial_data: Optional[np.ndarray | list] = None):
-        self._properties: set[str] = set([])
-        self._program: Program = program if isinstance(program, Program) else program.object()
-        self._vbo: Optional[VertexBuffer] = None
+    def __init__(self, pipeline, indices=None, primitive=GL.GL_TRIANGLES, **pointers):
+        self._pointers = pointers
+        self._pipeline = pipeline
         self.primitive = primitive
         self.indices = indices
-        self._vertex_array: Optional[VertexArray] = None
-        self._dirty = True
-        self._data = bytearray()
-        if initial_data is not None:
-            self.add_data(initial_data)
 
-    def __del__(self):
-        if self._vbo is not None:
-            del self._vbo
-        if self._vertex_array is not None:
-            del self._vertex_array
+        for pointer in pointers.values():
+            if not isinstance(pointer, BufferPointer):
+                raise ValueError('Must be of type BufferPointer')
 
-    def add_data(self, data: np.ndarray | list):
-        if isinstance(data, list):
-            data = np.array(data)
-        self._data.extend(data.tobytes())
-        self._dirty = True
+        self._vertex_array = VertexArray()
+        self._bind_pointers()
 
-    def __setattr__(self, name, value):
-        if name[0] != '_':
-            self._properties.add(name)
-        object.__setattr__(self, name, value)
+    def _bind_pointers(self):
+        # TODO: make this more efficient, don't just clear all pointers
+        self._vertex_array.clear()
 
-    def __delattr__(self, name):
-        if name in self._properties:
-            self._properties.remove(name)
-        object.__delattr__(self, name)
-
-    def build(self):
-        if not self._data:
-            raise RuntimeError('No data to build')
-        if not self._vertex_array:
-            self._vertex_array = VertexArray()
-        else:
-            self._vertex_array.clear()
         # assign our pointers to the vertex array
-        if self._vbo is not None:
-            del self._vbo
-        data = self._program.format(np.frombuffer(self._data, dtype=np.uint8))
-        self._vbo = VertexBuffer(data)
-        pointers = self._vbo.pointers
-        assert isinstance(pointers, dict)
-        for name, pointer in pointers.items():
+        for name, pointer in self._pointers.items():
             if not isinstance(pointer, BufferPointer):
                 raise ValueError('Must be a buffer pointer')
-            attribute = self._program.attributes.get(name)
+
+            attribute = self._pipeline.program.attributes.get(name)
             if attribute:
                 self._vertex_array[attribute.location] = pointer
-        self._dirty = False
-
-    @property
-    def dirty(self):
-        return self._dirty
-
-    def set_uniform(self, name, value):
-        if hasattr(self._program, name):
-            if isinstance(value, TextureBuffer):
-                value = value.texture
-            if isinstance(value, Texture):
-                unit = getattr(self._program, name)
-                if unit is not None:
-                    Texture.active_unit = unit
-                    value.bind()
-            else:
-                setattr(self._program, name, value)
-
-    def set_uniforms(self, **uniforms):
-        for name, value in uniforms.items():
-            self.set_uniform(name, value)
 
     def draw(self, **uniforms):
-        if self._dirty:
-            self.build()
-        assert self._vertex_array is not None
-        self.set_uniforms(**uniforms)
-        with self._program:
-            properties = dict((name, getattr(self, name)) for name in self._properties)
-            self.set_uniforms(**properties)
+        # set our uniforms
+        self._pipeline.set_uniforms(**uniforms)
+
+        # render
+        with self._pipeline:
             if self.indices is not None:
                 self._vertex_array.render_indices(self.indices, self.primitive)
             else:
                 self._vertex_array.render(self.primitive)
-            for name in self._properties:
-                value = getattr(self, name)
-                if isinstance(value, Texture):
-                    unit = getattr(self._program, name)
-                    if unit is not None:
-                        Texture.active_unit = unit
-                        value.unbind()
 
-__all__ = ['DrawCall']
+    @property
+    def pipeline(self):
+        return self._pipeline
+
+    @pipeline.setter
+    def pipeline(self, pipeline):
+        self._pipeline = pipeline
+        self._bind_pointers()
+
+    @property
+    def vertex_array(self):
+        return self._vertex_array

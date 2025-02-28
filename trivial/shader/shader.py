@@ -53,7 +53,7 @@ from OpenGL.raw.GL.VERSION import GL_2_0
 import numpy as np
 from ..object import ManagedObject
 from ..proxy import Proxy
-from .stage import Stage, VertexStage, FragmentStage
+from pyglsl import Stage, VertexStage, FragmentStage
 import re
 import textwrap
 

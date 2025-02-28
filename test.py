@@ -6,9 +6,9 @@ import slimrr as rr
 
 def test_shader():
     from trivial.shader.glsl import (AttributeBlock, UniformBlock,
-                                          ShaderInterface, FragmentShaderOutputBlock,
-                                          samplerBuffer, texelFetch, vec2,
-                                          vec3, vec4, mat4)
+                                     ShaderInterface, FragmentShaderOutputBlock,
+                                     samplerBuffer, texelFetch, vec2,
+                                     vec3, vec4, mat4)
     from trivial.shader.shader import VertexStage, FragmentStage
 
     class VsAttrs(AttributeBlock):
@@ -350,19 +350,25 @@ def create_quad(scale=(1.0,1.0), st=False, rgba=False, dtype='float32', type='tr
 with quick_window(640, 480, "test") as window:
     program = gl.Program(shaders=list(test_shader()))
     data, indices = create_cube((5.,5.,5.,), st=True)
-    flat_data = data[indices]
-    call = gl.DrawCall(program, initial_data=flat_data)
-    data, indices = create_quad((2.,2.,), st=True)
-    flat_data = data[indices]
+    cube_flat_data = program.format(data[indices])
+    cube_vbo = gl.VertexBuffer(data=cube_flat_data)
+    cube_vbo.set_data(cube_flat_data)
+    pipelineA = gl.Pipeline(program)
+    cube = gl.DrawCall(pipelineA, **cube_vbo.pointers)
+
     fbprogram = gl.Program(shaders=list(shader2()))
-    fbcall = gl.DrawCall(fbprogram, initial_data=flat_data)
+    data, indices = create_quad((2.,2.,), st=True)
+    tmp = data[indices]
+    quad_flat_data = fbprogram.format(tmp)
+    quad_vbo = gl.VertexBuffer(data=quad_flat_data)
+    pipelineB = gl.Pipeline(fbprogram)
+    quad = gl.DrawCall(pipelineB, **quad_vbo.pointers)
+
     data = np.random.random_sample((512,512,4))
     data = data.astype(np.float32)
     tb = gl.TextureBuffer(data)
-    bt = tb.texture
     angle = 0.0
     fbo = gl.FrameBufferTexture(dimensions=window.size)
-    ft = fbo.texture
 
     for dt in window.loop():
         for e in window.events():
@@ -384,7 +390,7 @@ with quick_window(640, 480, "test") as window:
             GL.glEnable(GL.GL_CULL_FACE)
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT) # type: ignore
             GL.glViewport(0, 0, width, height)
-            call.draw(projection=projection, modelview=model_view, in_buffer=bt)
+            cube.draw(projection=projection, modelview=model_view, in_buffer=tb.texture)
 
         projection_fbo = rr.Matrix44.orthogonal_projection(-1., 1., -1., 1., -1., 1., np.float32)
         model_view_fbo = rr.Matrix44.identity(np.float32)
@@ -393,4 +399,4 @@ with quick_window(640, 480, "test") as window:
         GL.glDisable(GL.GL_CULL_FACE)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
         GL.glViewport(0, 0, width*2, height*2)
-        fbcall.draw(projection=projection_fbo, modelview=model_view_fbo, in_buffer=ft)
+        quad.draw(projection=projection_fbo, modelview=model_view_fbo, in_buffer=fbo.texture)

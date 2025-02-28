@@ -20,7 +20,9 @@ from enum import Enum
 from contextlib import contextmanager
 from OpenGL import GL
 from .shader.default import DefaultShader
+from .pipeline import Pipeline 
 from .draw import DrawCall
+from .buffer import VertexBuffer
 
 def _mat4(dtype=np.float32):
     return np.zeros((4, 4), dtype=dtype)
@@ -199,22 +201,55 @@ class DrawMode(Enum):
     TRIANGLES = GL.GL_TRIANGLES
     QUADS = GL.GL_QUADS
 
+def shader2():
+    from trivial.shader.glsl import (AttributeBlock, ShaderInterface, FragmentShaderOutputBlock,
+                                     UniformBlock, sampler2D, vec2, vec3, vec4, texture)
+    from trivial.shader.shader import VertexStage, FragmentStage
+
+    class VsAttrs(AttributeBlock):
+        position = vec3()
+        texcoord = vec2()
+        in_color = vec4()
+
+    class VsOut(ShaderInterface):
+        gl_Position = vec4()
+        out_texcoords = vec2()
+        out_color = vec4()
+
+    def vertex(attr: VsAttrs) -> VsOut:
+        return VsOut(gl_Position=vec4(attr.position.x, attr.position.y, 0.0, 1.0),
+                     out_texcoords=attr.texcoord,
+                     out_color=attr.in_color)
+
+    class FsUniforms(UniformBlock):
+        in_buffer = sampler2D()
+
+    class FsOut(FragmentShaderOutputBlock):
+        out_color = vec4()
+
+    def fragment(vs_out: VsOut, uniforms: FsUniforms) -> FsOut:
+        return FsOut(out_color=vs_out.out_color * texture(uniforms.in_buffer, vs_out.out_texcoords))
+
+    return VertexStage(vertex), FragmentStage(fragment)
+
+from .shader import Program
+
 class GLState:
     def __init__(self):
         self.stacks = {k: MatrixStack() for k in MatrixMode}
         self._current_mode = MatrixMode.MODELVIEW
         self._clear_color = (0.0, 0.0, 0.0, 1.0)
         self.viewport = (0, 0, 0, 0)
-        self._default_shader = DefaultShader()
-        self._draw_calls = []
+        self._default_shader = None
+        self._last_texcoord = (0., 0.)
+        self._last_normal = (0., 0., 1.)
+        self._last_color = (1., 1., 1., 1.)
+        self._transform_required = False
+        self._data = None
 
     @property
     def default_shader(self):
         return self._default_shader
-
-    @property
-    def last_draw_call(self):
-        return self._draw_calls[-1] if self._draw_calls else None
 
     @property
     def current_mode(self):
@@ -325,22 +360,29 @@ def viewport(x, y, width, height):
 def begin(mode: DrawMode):
     if not mode in DrawMode:
         raise ValueError("Invalid draw mode")
-    last_call = __state__.last_draw_call
-    if last_call:
-        if last_call.dirty:
-            raise RuntimeError('Missing `end` call')
-    draw_call = DrawCall(program=__state__.default_shader, primitive=mode.value)
-    __state__._draw_calls.append(draw_call)
+    if __state__._data is not None:
+        raise RuntimeError("Missing `end()` call")
+    __state__._data = []
 
 def end():
-    last_call = __state__.last_draw_call
-    if last_call:
-        last_call.build()
+    if __state__._data is None:
+        raise RuntimeError("Missing or empty `begin()` call")
+    if not len(__state__._data):
+        raise RuntimeError("No vertices to draw")
+    if not __state__._default_shader:
+        __state__._default_shader = Program(shaders=[*shader2()])
+    shader = __state__.default_shader
+    input = np.array(__state__._data)
+    data = shader.format(input)
+    vbo = VertexBuffer(data=data)
+    pipeline = Pipeline(shader)
+    drawable = DrawCall(pipeline, **vbo.pointers)
+    drawable.draw(projection=get_projection_matrix(),
+                  modelview=get_modelview_matrix())
+    __state__._data = None
 
 def flush():
-    while __state__._draw_calls:
-        draw_call = __state__._draw_calls.pop(0)
-        # draw_call.draw()
+    pass
 
 @contextmanager
 def draw_mode(mode: DrawMode):
@@ -348,29 +390,26 @@ def draw_mode(mode: DrawMode):
     yield
     end()
 
-def vertex2f(x, y):
-    pass
+def vertex3(x, y, z):
+    assert __state__ is not None
+    if __state__._transform_required:
+        vec = np.array([x, y, z, 1.0])
+        vec = np.dot(__state__.stacks[MatrixMode.MODELVIEW].head, vec)
+        x, y, z = vec[:3]
+    vertex = np.array([x, y, z, *__state__._last_texcoord, *__state__._last_color], dtype=np.float32)
+    __state__._data.append(vertex)
 
-def vertex3f(x, y, z):
-    pass
+def vertex2(x, y):
+    vertex3(x, y, 0.0)
 
-def vertex2i(x, y):
-    pass
+def texcoord2(s, t):
+    __state__._last_texcoord = (s, t)
 
-def texcoord2f(s, t):
-    pass
+def normal3(x, y, z):
+    __state__._last_normal = (x, y, z)
 
-def normal3f(x, y, z):
-    pass
+def color4(r, g, b, a):
+    __state__._last_color = (r, g, b, a)
 
-def color3f(r, g, b):
-    pass
-
-def color4f(r, g, b, a):
-    pass
-
-def color3ub(r, g, b):
-    pass
-
-def color4ub(r, g, b, a):
-    pass
+def color3(r, g, b):
+    color4(r, g, b, 1.0)

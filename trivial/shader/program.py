@@ -53,7 +53,7 @@ from .variables import ProgramVariable, Attribute, Uniform
 from ..object import ManagedObject, UnmanagedObject, BindableObject, DescriptorMixin
 from ..proxy import Integer32Proxy
 from ..proxy import Proxy
-from .stage import Stage, VertexStage, FragmentStage
+from pyglsl import Stage, VertexStage, FragmentStage
 from .shader import Shader, VertexShader, FragmentShader
 from typing import Optional, Any
 
@@ -145,6 +145,13 @@ class Program(DescriptorMixin, BindableObject, ManagedObject):
                 self._set_frag_location(name, number)
         self._link()
 
+        for shader in detach:
+            self._detach(shader)
+
+        self._setup_attrs()
+        self._loaded = True
+    
+    def _setup_attrs(self):
         if self._attributes:
             store = VariableStore()
             for i, _ in enumerate(self._attributes.items()):
@@ -164,10 +171,6 @@ class Program(DescriptorMixin, BindableObject, ManagedObject):
                 self.__dict__[uniform.name] = uniform
             self.__dict__['_uniforms'] = store
 
-        for shader in detach:
-            self._detach(shader)
-        self._loaded = True
-
     @property
     def attributes(self):
         return self._attributes
@@ -178,15 +181,11 @@ class Program(DescriptorMixin, BindableObject, ManagedObject):
 
     def __getattr__(self, name):
         # noinspection PyBroadException
-        try:
-            if self._loaded:
-                stores = [self.__dict__['_uniforms'], self.__dict__['_attributes']]
-                for store in stores:
-                    if name in store:
-                        return store[name.encode("utf-8")].__get__(store, store.__class__)
-        except:
-            pass
-        raise AttributeError
+        if self._loaded:
+            stores = [self.__dict__['_uniforms'], self.__dict__['_attributes']]
+            for store in stores:
+                if name in store:
+                    return store[name].__get__(store, store.__class__)
 
     def __setattr__(self, name, value):
         return super(Program, self).__setattr__(name, value)
@@ -217,7 +216,8 @@ class Program(DescriptorMixin, BindableObject, ManagedObject):
                 return np.float64
             return dt
         # Sort by OpenGL attribute locations
-        return data.view(dtype=sorted([(k, convert_dtype(v.dtype), v.dimensions[0]) for k, v in self._attributes.items()], key=lambda x: getattr(self, x[0])))
+        _d = sorted([(k, convert_dtype(v.dtype), v.dimensions[0]) for k, v in self._attributes.items()], key=lambda x: getattr(self, x[0]))
+        return data.view(dtype=_d)
 
     @property
     def valid(self):
@@ -247,34 +247,40 @@ class StaticProgram:
     def valid(cls):
         return cls._id is not None and bool(GL.glValidateProgram(cls._id))
 
-    @property
-    def id(self):
-        if not self.__class__._id:
+    @classmethod
+    def _compile(cls):
+        if not cls._id:
             p = UnmanagedProgram(shaders=[
-                VertexStage(self.__class__.vertex_source, # type: ignore
-                    version=self.__class__.version,
-                    library=self.__class__.vertex_functions),
-                FragmentStage(self.__class__.fragment_source, # type: ignore
-                    version=self.__class__.version,
-                    library=self.__class__.fragment_functions)])
-            self.__class__.attributes = p.attributes
-            self.__class__.uniforms = p.uniforms
-            self.__class__._id = p.handle
-        return self.__class__._id
+                VertexStage(cls.vertex_source, # type: ignore
+                    version=cls.version,
+                    library=cls.vertex_functions),
+                FragmentStage(cls.fragment_source, # type: ignore
+                    version=cls.version,
+                    library=cls.fragment_functions)])
+            cls.attributes = p.attributes
+            cls.uniforms = p.uniforms
+            p._setup_attrs()
+            cls._id = p.handle
+        return cls._id
 
     @property
     def handle(self):
-        return self.id
+        return self.__class__._id
 
     def __int__(self):
         return self.__class__._id
 
     @classmethod
-    def delete(cls):
+    def _delete(cls):
         if cls._id:
             GL.glDeleteProgram(cls._id)
             cls._id = None
 
     @classmethod
     def object(cls) -> UnmanagedProgram:
-        return UnmanagedProgram(handle=cls._id)
+        if not cls._id:
+            cls._compile()
+        obj = UnmanagedProgram(handle=cls._id)
+        obj._attributes = cls.attributes
+        obj._uniforms = cls.uniforms
+        return obj
