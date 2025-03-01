@@ -19,7 +19,6 @@ import numpy as np
 from enum import Enum
 from contextlib import contextmanager
 from OpenGL import GL
-from .shader.default import DefaultShader
 from .shader import Program
 from .pipeline import Pipeline 
 from .draw import DrawCall

@@ -45,9 +45,3 @@ class FsOut(FragmentShaderOutputBlock):
 
 def default_fragment_shader(vs_out: VsOut) -> FsOut:
     return FsOut(fs_color=vs_out.color)
-
-from .program import StaticProgram
-
-class DefaultShader(StaticProgram):
-    vertex_source = default_vertex_shader
-    fragment_source = default_fragment_shader

@@ -47,9 +47,8 @@
 # of the authors and should not be interpreted as representing official policies,
 # either expressed or implied, of the FreeBSD Project.
 
-from .program import Program, StaticProgram, UnmanagedProgram
+from .program import Program, UnmanagedProgram
 from .shader import (ShaderException, Shader, VertexShader, FragmentShader,
                      GeometryShader, TesseleationControlShader,
                      TesselationEvaluationShader, ComputeShader)
 from pyglsl.stage import Stage, VertexStage, FragmentStage
-from .default import DefaultShader
