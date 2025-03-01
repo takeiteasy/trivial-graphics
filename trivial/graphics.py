@@ -20,6 +20,7 @@ from enum import Enum
 from contextlib import contextmanager
 from OpenGL import GL
 from .shader.default import DefaultShader
+from .shader import Program
 from .pipeline import Pipeline 
 from .draw import DrawCall
 from .buffer import VertexBuffer
@@ -201,7 +202,7 @@ class DrawMode(Enum):
     TRIANGLES = GL.GL_TRIANGLES
     QUADS = GL.GL_QUADS
 
-def shader2():
+def shader():
     from trivial.shader.glsl import (AttributeBlock, ShaderInterface, FragmentShaderOutputBlock,
                                      UniformBlock, sampler2D, vec2, vec3, vec4, texture)
     from trivial.shader.shader import VertexStage, FragmentStage
@@ -221,18 +222,13 @@ def shader2():
                      out_texcoords=attr.texcoord,
                      out_color=attr.in_color)
 
-    class FsUniforms(UniformBlock):
-        in_buffer = sampler2D()
-
     class FsOut(FragmentShaderOutputBlock):
         out_color = vec4()
 
-    def fragment(vs_out: VsOut, uniforms: FsUniforms) -> FsOut:
-        return FsOut(out_color=vs_out.out_color * texture(uniforms.in_buffer, vs_out.out_texcoords))
+    def fragment(vs_out: VsOut) -> FsOut:
+        return FsOut(out_color=vs_out.out_color)
 
     return VertexStage(vertex), FragmentStage(fragment)
-
-from .shader import Program
 
 class GLState:
     def __init__(self):
@@ -303,6 +299,10 @@ class GLState:
     def scale(self, scale):
         self.stacks[self.current_mode].mul(_scale(scale))
 
+    def vertex(self, x, y, z):
+        vertex = np.array([x, y, z, *__state__._last_texcoord, *__state__._last_color], dtype=np.float32)
+        __state__._data.append(vertex)
+
 __state__ = GLState()
 
 @contextmanager
@@ -370,12 +370,11 @@ def end():
     if not len(__state__._data):
         raise RuntimeError("No vertices to draw")
     if not __state__._default_shader:
-        __state__._default_shader = Program(shaders=[*shader2()])
-    shader = __state__.default_shader
+        __state__._default_shader = Program(shaders=[*shader()])
     input = np.array(__state__._data)
-    data = shader.format(input)
+    data = __state__.default_shader.format(input)
     vbo = VertexBuffer(data=data)
-    pipeline = Pipeline(shader)
+    pipeline = Pipeline(__state__.default_shader)
     drawable = DrawCall(pipeline, **vbo.pointers)
     drawable.draw(projection=get_projection_matrix(),
                   modelview=get_modelview_matrix())
@@ -390,17 +389,12 @@ def draw_mode(mode: DrawMode):
     yield
     end()
 
-def vertex3(x, y, z):
-    assert __state__ is not None
-    if __state__._transform_required:
-        vec = np.array([x, y, z, 1.0])
-        vec = np.dot(__state__.stacks[MatrixMode.MODELVIEW].head, vec)
-        x, y, z = vec[:3]
-    vertex = np.array([x, y, z, *__state__._last_texcoord, *__state__._last_color], dtype=np.float32)
-    __state__._data.append(vertex)
-
 def vertex2(x, y):
     vertex3(x, y, 0.0)
+
+def vertex3(x, y, z):
+    assert __state__ is not None
+    __state__.vertex(x, y, z)
 
 def texcoord2(s, t):
     __state__._last_texcoord = (s, t)
