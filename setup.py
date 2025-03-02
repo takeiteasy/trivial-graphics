@@ -32,6 +32,9 @@ setup(
         'pillow',
     ],
     tests_require=[],
+    extras_require={
+        'accelerate': ['pyopengl-accelerate'],
+    },
     platforms=['any'],
     packages=[
         'trivial',

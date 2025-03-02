@@ -1,1 +1,1 @@
--e .[accelerate,quickwindow,slimrr]
+-e .[accelerate]

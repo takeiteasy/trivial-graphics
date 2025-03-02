@@ -1,8 +1,6 @@
 import trivial.graphics as gl
-import numpy as np
 from OpenGL import GL
 from quickwindow import quick_window
-import slimrr as rr
 
 with quick_window(800, 600, "test") as wnd:
     for dt in wnd.loop():

@@ -209,6 +209,7 @@ def shader():
     class VsAttrs(AttributeBlock):
         position = vec3()
         texcoord = vec2()
+        # normal = vec3()
         in_color = vec4()
 
     class VsOut(ShaderInterface):
@@ -264,41 +265,12 @@ class GLState:
     def clear_color(self, color):
         self._clear_color = [*np.clip([(c if isinstance(c, float) else float(c) / 255.) for c in (color if len(color) == 4 else (*color, 1.0))], 0., 1.)]
         assert len(self._clear_color) == 4
+    
+    @property
+    def current_stack(self):
+        return self.stacks[self.current]
 
-    def push(self):
-        self.stacks[self.current_mode].push(self.stacks[self.current_mode].head)
-
-    def pop(self):
-        return self.stacks[self.current_mode].pop()
-
-    def load_identity(self):
-        self.stacks[self.current_mode].load_identity()
-
-    def load_ortho(self, left, right, bottom, top, near, far):
-        self.stacks[self.current_mode].load_ortho(left, right, bottom, top, near, far)
-
-    def load_perspective(self, fovy, aspect, near, far):
-        self.stacks[self.current_mode].load_perspective(fovy, aspect, near, far)
-
-    def translate(self, vec):
-        self.stacks[self.current_mode].translate(vec)
-
-    def rotate(self, vec):
-        self.stacks[self.current_mode].rotate(vec)
-
-    def xrotate(self, theta):
-        self.stacks[self.current_mode].rotate_x(theta)
-
-    def yrotate(self, theta):
-        self.stacks[self.current_mode].rotate_y(theta)
-
-    def zrotate(self, theta):
-        self.stacks[self.current_mode].rotate_z(theta)
-
-    def scale(self, scale):
-        self.stacks[self.current_mode].mul(_scale(scale))
-
-    def vertex(self, x, y, z):
+    def push_vertex(self, x, y, z):
         vertex = np.array([x, y, z, *__state__._last_texcoord, *__state__._last_color], dtype=np.float32)
         __state__._data.append(vertex)
 
@@ -312,31 +284,31 @@ def matrix_mode(mode: MatrixMode):
     __state__.current_mode = original
 
 def push_matrix():
-    __state__.push()
+    __state__.current_stack.push(__state__.current_stack.head)
 
 def pop_matrix():
-    return __state__.pop()
+    __state__.current_stack.pop()
 
 def load_identity():
-    __state__.load_identity()
+    __state__.current_stack.load_identity()
 
 def translate(x, y, z):
-    __state__.translate([x, y, z])
+    __state__.current_stack.translate([x, y, z])
 
 def rotate(x, y, z):
-    __state__.rotate([x, y, z])
+    __state__.current_stack.rotate([x, y, z])
 
 def rotate_x(theta):
-    __state__.xrotate(theta)
+    __state__.current_stack.xrotate(theta)
 
 def rotate_y(theta):
-    __state__.yrotate(theta)
+    __state__.current_stack.yrotate(theta)
 
 def rotate_z(theta):
-    __state__.zrotate(theta)
+    __state__.current_stack.zrotate(theta)
 
 def scale(scale):
-    __state__.scale(scale)
+    __state__.current_stack.scale(scale)
 
 def get_modelview_matrix():
     return __state__.stacks[MatrixMode.MODELVIEW].head
@@ -388,12 +360,16 @@ def draw_mode(mode: DrawMode):
     yield
     end()
 
-def vertex2(x, y):
-    vertex3(x, y, 0.0)
+def vertex2(x, y, st=None, color=None):
+    vertex3(x, y, 0.0, st=st, color=color)
 
-def vertex3(x, y, z):
+def vertex3(x, y, z, st=None, color=None):
     assert __state__ is not None
-    __state__.vertex(x, y, z)
+    if st is not None:
+        texcoord2(*st)
+    if color is not None:
+        color4(*color)
+    __state__.push_vertex(x, y, z)
 
 def texcoord2(s, t):
     __state__._last_texcoord = (s, t)
@@ -401,6 +377,12 @@ def texcoord2(s, t):
 def normal3(x, y, z):
     __state__._last_normal = (x, y, z)
 
+def int_or_float(func):
+    def wrapper(*args):
+        return func(*[a if isinstance(a, float) else (float(a) / 255.) for a in args])
+    return wrapper
+
+@int_or_float
 def color4(r, g, b, a):
     __state__._last_color = (r, g, b, a)
 
