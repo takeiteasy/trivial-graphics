@@ -29,6 +29,7 @@ setup(
     install_requires=[
         'numpy',
         'pyopengl',
+        'pyglsl',
         'pillow',
     ],
     tests_require=[],

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trivial-graphics"
-version = "0.0.5"
+version = "0.0.6"
 authors = [
   { name="George Watson", email="gigolo@hotmail.co.uk" },
 ]
@@ -14,6 +14,7 @@ requires-python = ">=3.10"
 dependencies = [
     "numpy",
     "pyopengl",
+    "pyglsl",
     "pillow",
 ]
 classifiers = [
