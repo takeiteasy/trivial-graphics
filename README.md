@@ -6,7 +6,14 @@
 A fork of [OMGL](https://github.com/adamlwgriffiths/OMGL)
 
 > [!NOTE]
-> `pip install trivial-graphics==0.0.7`
+> `pip install trivial-graphics==0.0.8`
+
+## TODO
+
+- [ ] Model loading + intergration with trimesh
+    - [ ] Skeletal animation?
+- [ ] Geometry generation 2D+3D
+- [ ] Font rendering with freetype-py
 
 ## LICENSE
 

@@ -354,14 +354,14 @@ with quick_window(640, 480, "test") as window:
     cube_flat_data = pipelineA.format(data[indices])
     cube_vbo = gl.VertexBuffer(data=cube_flat_data)
     cube_vbo.set_data(cube_flat_data)
-    cube = gl.DrawCall(pipelineA, **cube_vbo.pointers)
+    cube = gl.Mesh(pipelineA, **cube_vbo.pointers)
 
     fbprogram = gl.Program(shaders=list(shader2()))
     pipelineB = gl.Pipeline(fbprogram)
     data, indices = create_quad((2.,2.,), st=True)
     quad_flat_data = pipelineB.format(data[indices])
     quad_vbo = gl.VertexBuffer(data=quad_flat_data)
-    quad = gl.DrawCall(pipelineB, **quad_vbo.pointers)
+    quad = gl.Mesh(pipelineB, **quad_vbo.pointers)
 
     data = np.random.random_sample((512,512,4))
     data = data.astype(np.float32)
