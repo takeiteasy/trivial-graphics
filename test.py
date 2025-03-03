@@ -349,19 +349,18 @@ def create_quad(scale=(1.0,1.0), st=False, rgba=False, dtype='float32', type='tr
 
 with quick_window(640, 480, "test") as window:
     program = gl.Program(shaders=list(test_shader()))
+    pipelineA = gl.Pipeline(program)
     data, indices = create_cube((5.,5.,5.,), st=True)
-    cube_flat_data = program.format(data[indices])
+    cube_flat_data = pipelineA.format(data[indices])
     cube_vbo = gl.VertexBuffer(data=cube_flat_data)
     cube_vbo.set_data(cube_flat_data)
-    pipelineA = gl.Pipeline(program)
     cube = gl.DrawCall(pipelineA, **cube_vbo.pointers)
 
     fbprogram = gl.Program(shaders=list(shader2()))
-    data, indices = create_quad((2.,2.,), st=True)
-    tmp = data[indices]
-    quad_flat_data = fbprogram.format(tmp)
-    quad_vbo = gl.VertexBuffer(data=quad_flat_data)
     pipelineB = gl.Pipeline(fbprogram)
+    data, indices = create_quad((2.,2.,), st=True)
+    quad_flat_data = pipelineB.format(data[indices])
+    quad_vbo = gl.VertexBuffer(data=quad_flat_data)
     quad = gl.DrawCall(pipelineB, **quad_vbo.pointers)
 
     data = np.random.random_sample((512,512,4))

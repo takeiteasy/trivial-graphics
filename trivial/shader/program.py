@@ -70,6 +70,15 @@ class ProgramProxy(Proxy):
             dtype=dtype, prepend_args=['_handle'],
         )
 
+class ProgramUnitProxy(Integer32Proxy):
+    def __init__(self):
+        super(ProgramUnitProxy, self).__init__(
+            getter_args=[GL.GL_CURRENT_PROGRAM],
+            setter=GL.glUseProgram
+        )
+    
+    def _get_result(self, value):
+        return super(ProgramUnitProxy, self)._get_result(value)
 
 class VariableStore(DescriptorMixin, dict):
     def __getattr__(self, name):
@@ -86,8 +95,12 @@ class VariableStore(DescriptorMixin, dict):
             raise ValueError('Attempted to set to a non-ProgramVariable, use the ProgramVariable.data setter instead')
         super(VariableStore, self).__setitem__(index, value)
 
+class ActiveProgramMetaClass(type):
+    active_program = ProgramUnitProxy()
 
 class Program(DescriptorMixin, BindableObject, ManagedObject):
+    __metaclass__ = ActiveProgramMetaClass
+
     _create_func = GL.glCreateProgram
     _delete_func = GL.glDeleteProgram
     _bind_func = GL.glUseProgram

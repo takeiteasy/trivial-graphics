@@ -226,6 +226,7 @@ def shader():
         out_color = vec4()
 
     def fragment(vs_out: VsOut) -> FsOut:
+        # TODO: Add sampler2D back + default texture
         return FsOut(out_color=vs_out.out_color)
 
     return VertexStage(vertex), FragmentStage(fragment)
@@ -268,7 +269,7 @@ class GLState:
     
     @property
     def current_stack(self):
-        return self.stacks[self.current]
+        return self.stacks[self._current_mode]
 
     def push_vertex(self, x, y, z):
         vertex = np.array([x, y, z, *__state__._last_texcoord, *__state__._last_color], dtype=np.float32)
@@ -320,10 +321,10 @@ def get_texture_matrix():
     return __state__.stacks[MatrixMode.TEXTURE].head
 
 def load_ortho(left, right, bottom, top, near, far):
-    __state__.load_ortho(left, right, bottom, top, near, far)
+    __state__.current_stack.load_ortho(left, right, bottom, top, near, far)
 
 def load_perpective(fovy, aspect, near, far):
-    __state__.load_perspective(fovy, aspect, near, far)
+    __state__.current_stack.load_perspective(fovy, aspect, near, far)
 
 def viewport(x, y, width, height):
     __state__.viewport = (x, y, width, height)
@@ -343,9 +344,9 @@ def end():
     if not __state__._default_shader:
         __state__._default_shader = Program(shaders=[*shader()])
     input = np.array(__state__._data)
-    data = __state__.default_shader.format(input)
-    vbo = VertexBuffer(data=data)
     pipeline = Pipeline(__state__.default_shader)
+    data = pipeline.format(input)
+    vbo = VertexBuffer(data=data)
     drawable = DrawCall(pipeline, **vbo.pointers)
     drawable.draw(projection=get_projection_matrix(),
                   modelview=get_modelview_matrix())

@@ -49,7 +49,8 @@
 
 from .object import DescriptorMixin, BindableObject
 from .texture import Texture
-from .buffer import TextureBuffer 
+from .buffer import TextureBuffer
+import numpy as np
 
 class Pipeline(DescriptorMixin, BindableObject):
     def __init__(self, program, **properties):
@@ -108,3 +109,6 @@ class Pipeline(DescriptorMixin, BindableObject):
     @property
     def properties(self):
         return dict((name, getattr(self, name)) for name in self._properties)
+    
+    def format(self, data: np.ndarray):
+        return self._program.format(data)
