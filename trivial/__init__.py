@@ -52,3 +52,4 @@ from .shader import *
 from .texture import *
 from .pipeline import *
 from .mesh import *
+from .geometry import *
