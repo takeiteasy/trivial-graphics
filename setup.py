@@ -27,10 +27,10 @@ setup(
     author='George Watson',
     url='https://github.com/takeiteasy/trivial-graphics',
     install_requires=[
-        'numpy',
-        'pyopengl',
-        'pyglsl',
-        'pillow',
+        'pyopengl==3.1.9',
+        'pyglsl==0.0.7',
+        'pillow==11.1.0',
+        'slimrr==0.1.0',
     ],
     tests_require=[],
     extras_require={

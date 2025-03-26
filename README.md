@@ -11,9 +11,11 @@ A fork of [OMGL](https://github.com/adamlwgriffiths/OMGL)
 ## TODO
 
 - [ ] Model loading + intergration with trimesh
-    - [ ] Skeletal animation?
-- [ ] Geometry generation 2D+3D
+- [ ] Animated models (IQM)
+- [ ] More geometry generation 2D+3D
 - [ ] Font rendering with freetype-py
+- [ ] Extend Pipeline class
+- [ ] Optional fixed-pipeline API
 
 ## LICENSE
 
