@@ -330,4 +330,4 @@ def create_quad(scale=(1.0,1.0), st=False, rgba=False, dtype='float32', type='tr
 
     return data, indices
 
-    __all__ = ['create_cube', 'create_quad']
+__all__ = ['create_cube', 'create_quad']

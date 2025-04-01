@@ -6,12 +6,11 @@
 A fork of [OMGL](https://github.com/adamlwgriffiths/OMGL)
 
 > [!NOTE]
-> `pip install trivial-graphics==0.0.8`
+> `pip install trivial-graphics==0.0.9`
 
 ## TODO
 
 - [ ] Model loading + intergration with trimesh
-- [ ] Animated models (IQM)
 - [ ] More geometry generation 2D+3D
 - [ ] Font rendering with freetype-py
 - [ ] Extend Pipeline class

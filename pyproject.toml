@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trivial-graphics"
-version = "0.0.8"
+version = "0.0.9"
 authors = [
   { name="George Watson", email="gigolo@hotmail.co.uk" },
 ]
@@ -14,8 +14,7 @@ requires-python = ">=3.10"
 dependencies = [
     "pyopengl==3.1.9",
     "pyglsl==0.0.7",
-    "pillow==11.1.0",
-    "slimrr==0.1.0"
+    "pillow==11.1.0"
 ]
 classifiers = [
     "Natural Language :: English",
