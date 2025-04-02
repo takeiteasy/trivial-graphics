@@ -99,18 +99,15 @@ class ManagedObject(GLObject):
     def _destroy(self):
         if self.dontdelete:
             return
-        try:
-            func = self._delete_func
-            if hasattr(self._delete_func, 'wrappedOperation'):
-                func = self._delete_func.wrappedOperation
+        func = self._delete_func
+        if hasattr(self._delete_func, 'wrappedOperation'):
+            func = self._delete_func.wrappedOperation
 
-            if len(func.argNames) > 2:
-                self._delete_func(1, [self._handle])
-            else:
-                self._delete_func(self._handle)
-            self._handle = None
-        except:
-            pass
+        if len(func.argNames) == 2:
+            self._delete_func(1, [self._handle])
+        else:
+            self._delete_func(self._handle)
+        self._handle = None
 
     @property
     def handle(self):
