@@ -47,6 +47,8 @@
 # of the authors and should not be interpreted as representing official policies, 
 # either expressed or implied, of the FreeBSD Project.
 
+from ctypes import c_int
+
 class DescriptorMixin(object):
     """Mixin to enable runtime-added descriptors."""
     def __getattribute__(self, name):
@@ -107,8 +109,7 @@ class ManagedObject(GLObject):
             try:
                 self._delete_func(1, [self._handle])
             except TypeError:
-                from ctypes import c_uint
-                handle_array = (c_uint * 1)(self._handle)
+                handle_array = (c_int * 1)(self._handle)
                 self._delete_func(1, handle_array)
         else:
             self._delete_func(self._handle)
