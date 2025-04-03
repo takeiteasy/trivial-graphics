@@ -104,7 +104,12 @@ class ManagedObject(GLObject):
             func = self._delete_func.wrappedOperation
 
         if len(func.argNames) == 2:
-            self._delete_func(1, [self._handle])
+            try:
+                self._delete_func(1, [self._handle])
+            except TypeError:
+                from ctypes import c_uint
+                handle_array = (c_uint * 1)(self._handle)
+                self._delete_func(1, handle_array)
         else:
             self._delete_func(self._handle)
         self._handle = None
